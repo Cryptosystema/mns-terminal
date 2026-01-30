@@ -49,61 +49,151 @@
 </div>
 
 <script>
+  // ========== PHASE 9.6.1: TUNNEL VISUALIZATION ENGINE ==========
+
+  // DOM References
   const logEl = document.getElementById("log");
   const barEl = document.getElementById("bar");
 
-  const coreState = {
-    tunnel_status: "STABLE",
-    sync_phase: "9.6",
-    load_index: 0.68,
-    active_nodes: ["TBILISI_01", "GLOBAL_ENTRY"]
+  // Global State Object (Single Source of Truth)
+  const TunnelState = {
+    phase: "9.6",
+    status: "STABLE",
+    location: "TBILISI_HUB_01",
+    depth: 68.0,
+    nodes: [
+      { id: "TBILISI_01", load: 0.68, status: "STABLE" },
+      { id: "GLOBAL_ENTRY", load: 0.54, status: "STABLE" },
+      { id: "BACKBONE_03", load: 0.72, status: "STABLE" }
+    ],
+    tick: 0,
+    maxLogLines: 14
   };
 
+  // Seeded Pseudo-Random Number Generator (Deterministic)
+  let seed = 9601;
+  function seededRandom() {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  }
+
+  // ========== STATE UPDATE LOGIC ==========
+
+  function updateTunnelState() {
+    TunnelState.tick++;
+
+    // Update tunnel depth (slow, bounded drift)
+    const depthDrift = (seededRandom() - 0.5) * 0.3;
+    TunnelState.depth = Math.min(100, Math.max(0, TunnelState.depth + depthDrift));
+
+    // Update each node load (smooth, bounded)
+    TunnelState.nodes.forEach(node => {
+      const loadDrift = (seededRandom() - 0.5) * 0.04;
+      node.load = Math.min(0.98, Math.max(0.15, node.load + loadDrift));
+
+      // Determine status based on load
+      if (node.load < 0.3) {
+        node.status = "IDLE";
+      } else if (node.load < 0.75) {
+        node.status = "STABLE";
+      } else if (node.load < 0.9) {
+        node.status = "HIGH_LOAD";
+      } else {
+        node.status = "CRITICAL";
+      }
+    });
+
+    // System status based on average load
+    const avgLoad = TunnelState.nodes.reduce((sum, n) => sum + n.load, 0) / TunnelState.nodes.length;
+    if (avgLoad < 0.75) {
+      TunnelState.status = "STABLE";
+    } else if (avgLoad < 0.85) {
+      TunnelState.status = "ELEVATED";
+    } else {
+      TunnelState.status = "WARNING";
+    }
+  }
+
+  // ========== RENDER LOGIC ==========
+
   function writeLog(line) {
-    logEl.textContent += line + "\n";
+    const lines = logEl.textContent.split("\n");
+    if (lines.length > TunnelState.maxLogLines) {
+      lines.shift();
+    }
+    logEl.textContent = lines.join("\n") + line + "\n";
     logEl.scrollTop = logEl.scrollHeight;
   }
 
-  function renderBar(value) {
-    const total = 16;
-    const filled = Math.round(value * total);
-    const empty = total - filled;
-    return `[${"█".repeat(filled)}${"░".repeat(empty)}] ${Math.round(value * 100)}%`;
+  function renderProgressBar(value, width = 16) {
+    const filled = Math.round((value / 100) * width);
+    const empty = width - filled;
+    const bar = "█".repeat(filled) + "░".repeat(empty);
+    const pct = Math.round(value);
+    return `[${bar}] ${pct}%`;
   }
 
-  const bootSequence = [
-    "> SYSTEM: MNS (Market Navigation System)",
-    "> STATUS: INITIALIZING",
-    "> LOCATION: TBILISI_HUB_01",
-    "> CONNECTION: SECURE_ENCRYPTED",
-    "> ACCESS: RESTRICTED_TO_PILOTS",
-    "> SYNC PHASE: 9.6",
-    ">",
-  ];
+  function renderNodeLine(node) {
+    const loadStr = node.load.toFixed(2);
+    return `> NODE ${node.id.padEnd(16)} | LOAD ${loadStr} | ${node.status}`;
+  }
 
-  let i = 0;
-  const bootTimer = setInterval(() => {
-    writeLog(bootSequence[i]);
-    i++;
-    if (i === bootSequence.length) {
-      clearInterval(bootTimer);
-      startStream();
+  function renderTelemetry() {
+    const timestamp = `T+${String(TunnelState.tick).padStart(5, "0")}`;
+    const sysStatus = `SYSTEM ${TunnelState.status}`;
+    writeLog(`${timestamp} | ${sysStatus}`);
+
+    // Render node status every 3 ticks
+    if (TunnelState.tick % 3 === 0) {
+      const nodeIndex = Math.floor(TunnelState.tick / 3) % TunnelState.nodes.length;
+      writeLog(renderNodeLine(TunnelState.nodes[nodeIndex]));
     }
-  }, 500);
+  }
 
-  function startStream() {
+  function renderBar() {
+    barEl.textContent = 
+      `TUNNEL DEPTH (PHASE ${TunnelState.phase})\n` +
+      `${renderProgressBar(TunnelState.depth)}\n` +
+      `LOCATION: ${TunnelState.location}`;
+  }
+
+  // ========== INITIALIZATION & TICK LOOP ==========
+
+  function init() {
+    const bootSequence = [
+      "> SYSTEM: MNS (Market Navigation System)",
+      "> STATUS: INITIALIZING",
+      "> LOCATION: TBILISI_HUB_01",
+      "> CONNECTION: SECURE_ENCRYPTED",
+      "> ACCESS: RESTRICTED_TO_PILOTS",
+      `> SYNC PHASE: ${TunnelState.phase}`,
+      "> TUNNEL VISUALIZATION ENGINE: ACTIVE",
+      ">",
+    ];
+
+    let i = 0;
+    const bootTimer = setInterval(() => {
+      writeLog(bootSequence[i]);
+      i++;
+      if (i === bootSequence.length) {
+        clearInterval(bootTimer);
+        startTunnelLoop();
+      }
+    }, 400);
+  }
+
+  function startTunnelLoop() {
+    renderBar();
+
     setInterval(() => {
-      const drift = (Math.random() - 0.5) * 0.05;
-      coreState.load_index = Math.min(0.95, Math.max(0.2, coreState.load_index + drift));
-
-      writeLog(
-        `> NODE ${coreState.active_nodes[0]} | LOAD ${coreState.load_index.toFixed(2)} | STATUS ${coreState.tunnel_status}`
-      );
-
-      barEl.textContent =
-        "TUNNEL DEPTH\n" + renderBar(coreState.load_index);
+      updateTunnelState();
+      renderTelemetry();
+      renderBar();
     }, 1200);
   }
+
+  // Boot
+  init();
 </script>
 
 </body>
