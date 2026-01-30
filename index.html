@@ -44,6 +44,7 @@
     /* ================================
        Phase 9.6.1 — Tunnel Visualization Engine
        Phase 9.6.2 — Semantic Stream Structuring
+       Phase 9.6.3 — Regime Signals (Pre-Risk, Non-Actionable)
        ================================ */
 
     /* ---------- Deterministic PRNG ---------- */
@@ -68,6 +69,11 @@
       stream: {
         tick: 0,
         lastEvent: null
+      },
+      regime: {
+        state: "CALM",
+        confidence: 0.0,
+        lastChangeTick: 0
       }
     };
 
@@ -76,6 +82,57 @@
     const MAX_LINES = 120;
     const BAR_WIDTH = 12;
     const HEARTBEAT_INTERVAL = 7;
+    const REGIME_HYSTERESIS = 3; // ticks before regime locks in
+    const CONFIDENCE_THRESHOLDS = [0.6, 0.8];
+
+    /* ---------- Regime Computation Logic ---------- */
+    function computeRegime() {
+      const depth = TunnelState.depth;
+      const avgLoad = TunnelState.nodes.reduce((sum, n) => sum + n.load, 0) / TunnelState.nodes.length;
+      const tick = TunnelState.stream.tick;
+      const currentState = TunnelState.regime.state;
+
+      // Determine target regime based on telemetry
+      let targetState;
+      if (depth > 85 || avgLoad > 0.80) {
+        targetState = "COMPRESSED";
+      } else if (depth >= 70 || avgLoad >= 0.65) {
+        targetState = "ELEVATED";
+      } else {
+        targetState = "CALM";
+      }
+
+      // Apply hysteresis: require sustained condition before transition
+      const ticksSinceChange = tick - TunnelState.regime.lastChangeTick;
+      let shouldTransition = false;
+
+      if (targetState !== currentState) {
+        // Check if we've been in "wanting to change" state long enough
+        if (ticksSinceChange >= REGIME_HYSTERESIS) {
+          shouldTransition = true;
+        }
+      }
+
+      // Determine if regime changed
+      let regimeChanged = false;
+      if (shouldTransition) {
+        TunnelState.regime.state = targetState;
+        TunnelState.regime.lastChangeTick = tick;
+        TunnelState.regime.confidence = 0.0;
+        regimeChanged = true;
+      }
+
+      // Update confidence: increases with time in stable regime
+      if (targetState === currentState && !regimeChanged) {
+        const confidenceGrowthRate = 0.08;
+        TunnelState.regime.confidence = Math.min(
+          1.0,
+          TunnelState.regime.confidence + confidenceGrowthRate
+        );
+      }
+
+      return regimeChanged;
+    }
 
     /* ---------- State Update Logic ---------- */
     function updateState() {
@@ -168,10 +225,33 @@
       }
     }
 
+    function generateRegimeLine() {
+      const regime = TunnelState.regime;
+      return formatStreamLine(
+        "REGIME",
+        `state=${regime.state} | confidence=${regime.confidence.toFixed(2)}`
+      );
+    }
+
     /* ---------- Render Logic ---------- */
     function render(terminal) {
       const fragment = document.createDocumentFragment();
       const tick = TunnelState.stream.tick;
+      
+      // Track previous confidence for threshold crossing detection
+      const prevConfidence = TunnelState.regime.confidence;
+
+      // Compute regime (isolated)
+      const regimeChanged = computeRegime();
+
+      // Detect confidence threshold crossings
+      let confidenceThresholdCrossed = false;
+      for (const threshold of CONFIDENCE_THRESHOLDS) {
+        if (prevConfidence < threshold && TunnelState.regime.confidence >= threshold) {
+          confidenceThresholdCrossed = true;
+          break;
+        }
+      }
 
       // Heartbeat line (every N ticks)
       if (tick % HEARTBEAT_INTERVAL === 0) {
@@ -179,6 +259,14 @@
         heartbeat.className = "line dim";
         heartbeat.textContent = generateHeartbeatLine();
         fragment.appendChild(heartbeat);
+      }
+
+      // Regime line (on state change or confidence threshold crossing)
+      if (regimeChanged || confidenceThresholdCrossed) {
+        const regimeLine = document.createElement("div");
+        regimeLine.className = "line dim";
+        regimeLine.textContent = generateRegimeLine();
+        fragment.appendChild(regimeLine);
       }
 
       // Telemetry lines (every tick)
