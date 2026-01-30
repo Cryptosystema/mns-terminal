@@ -46,6 +46,7 @@
        Phase 9.6.2 — Semantic Stream Structuring
        Phase 9.6.3 — Regime Signals (Pre-Risk, Non-Actionable)
        Phase 9.6.4 — Integrity Markers (Data Health & Silent Failure Detection)
+       Phase 9.6.5 — Temporal Coherence (Clock Drift & Time Semantics)
        ================================ */
 
     /* ---------- Deterministic PRNG ---------- */
@@ -84,6 +85,14 @@
         prevDepth: 72,
         prevLoad: 0.71,
         staleTicks: 0
+      },
+      time: {
+        tick: 0,
+        expectedInterval: 1,
+        drift: 0,
+        coherence: "LOCKED",
+        lastCoherenceTick: 0,
+        tickHistory: []
       }
     };
 
@@ -97,6 +106,10 @@
     const INTEGRITY_HYSTERESIS = 3;
     const STALE_THRESHOLD = 5;
     const VALUE_EPSILON = 0.001;
+    const TIME_HYSTERESIS = 4;
+    const DRIFT_THRESHOLD_MINOR = 2;
+    const DRIFT_THRESHOLD_MAJOR = 5;
+    const TICK_HISTORY_SIZE = 10;
 
     /* ---------- Integrity Computation Logic ---------- */
     function computeIntegrity() {
@@ -153,6 +166,59 @@
       }
 
       return integrityChanged;
+    }
+
+    /* ---------- Temporal Coherence Computation Logic ---------- */
+    function computeTemporalCoherence() {
+      const tick = TunnelState.stream.tick;
+      const currentCoherence = TunnelState.time.coherence;
+
+      // Increment internal time tick
+      TunnelState.time.tick++;
+
+      // Track tick intervals in history
+      const prevTick = TunnelState.time.tickHistory.length > 0 
+        ? TunnelState.time.tickHistory[TunnelState.time.tickHistory.length - 1]
+        : TunnelState.time.tick - 1;
+      
+      const interval = TunnelState.time.tick - prevTick;
+      TunnelState.time.tickHistory.push(TunnelState.time.tick);
+      
+      // Keep history bounded
+      if (TunnelState.time.tickHistory.length > TICK_HISTORY_SIZE) {
+        TunnelState.time.tickHistory.shift();
+      }
+
+      // Calculate drift: deviation from expected interval
+      const deviation = interval - TunnelState.time.expectedInterval;
+      
+      // Accumulate drift with decay
+      TunnelState.time.drift = TunnelState.time.drift * 0.7 + deviation * 0.3;
+
+      // Determine target coherence state based on accumulated drift
+      let targetCoherence = "LOCKED";
+      const absDrift = Math.abs(TunnelState.time.drift);
+      
+      if (absDrift >= DRIFT_THRESHOLD_MAJOR) {
+        targetCoherence = "DESYNC";
+      } else if (absDrift >= DRIFT_THRESHOLD_MINOR) {
+        targetCoherence = "DRIFTING";
+      }
+
+      // Apply hysteresis to prevent rapid state changes
+      let coherenceChanged = false;
+      if (targetCoherence !== currentCoherence) {
+        const ticksSinceLastChange = tick - (TunnelState.time.lastCoherenceTick || 0);
+        if (!TunnelState.time.lastCoherenceTick || ticksSinceLastChange >= TIME_HYSTERESIS) {
+          TunnelState.time.coherence = targetCoherence;
+          TunnelState.time.lastCoherenceTick = tick;
+          coherenceChanged = true;
+        }
+      } else {
+        TunnelState.time.lastCoherenceTick = tick;
+      }
+
+      return coherenceChanged;
     }
 
     /* ---------- Regime Computation Logic ---------- */
@@ -311,6 +377,17 @@
       );
     }
 
+    function generateTimeLine() {
+      const time = TunnelState.time;
+      const driftStr = time.drift >= 0 
+        ? `+${time.drift.toFixed(1)}`
+        : time.drift.toFixed(1);
+      return formatStreamLine(
+        "TIME",
+        `coherence=${time.coherence} | drift=${driftStr}`
+      );
+    }
+
     /* ---------- Render Logic ---------- */
     function render(terminal) {
       const fragment = document.createDocumentFragment();
@@ -318,6 +395,9 @@
       
       // Track previous confidence for threshold crossing detection
       const prevConfidence = TunnelState.regime.confidence;
+
+      // Compute temporal coherence (isolated)
+      const timeChanged = computeTemporalCoherence();
 
       // Compute integrity (isolated)
       const integrityChanged = computeIntegrity();
@@ -340,6 +420,14 @@
         heartbeat.className = "line dim";
         heartbeat.textContent = generateHeartbeatLine();
         fragment.appendChild(heartbeat);
+      }
+
+      // Time line (on coherence state transition)
+      if (timeChanged) {
+        const timeLine = document.createElement("div");
+        timeLine.className = "line dim";
+        timeLine.textContent = generateTimeLine();
+        fragment.appendChild(timeLine);
       }
 
       // Integrity line (on health state transition)
