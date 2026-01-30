@@ -2,86 +2,173 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MNS | Market Navigation System</title>
+  <title>MNS Terminal</title>
   <style>
-    /* ================================
-       Phase 9.7 — UX Stabilization Boundary
-       Visual Semantics Lock
-       ================================ */
-
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       background: #000;
       color: #00ff66;
       font-family: "Courier New", monospace;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
+      height: 100%;
     }
-
-    /* Terminal Layout Invariants (LOCKED) */
-    .terminal {
-      width: 640px;
-      height: 420px;
-      border: 1px solid #00ff66;
-      padding: 16px;
+    #terminal {
       box-sizing: border-box;
-      overflow: hidden;
-      box-shadow: 0 0 20px rgba(0,255,102,0.2);
-      position: relative;
-      min-width: 640px;
-      max-width: 640px;
-      min-height: 420px;
-      max-height: 420px;
-    }
-
-    /* Base Line Format (LOCKED) */
-    .line {
+      padding: 16px;
+      height: 100%;
+      overflow-y: auto;
       white-space: pre;
-      line-height: 1.35;
-      font-size: 14px;
-      letter-spacing: 0;
     }
-
-    /* Semantic Color Discipline (Green Palette Only) */
-    .line-telemetry {
-      color: #00ff66;
+    #nav {
+      position: sticky;
+      top: 0;
+      background: #000;
+      border-bottom: 1px solid #00aa44;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      font-weight: bold;
     }
-
-    .line-heartbeat {
-      color: rgba(0,255,102,0.6);
-    }
-
-    .line-regime {
-      color: #00ff88;
-    }
-
-    .line-event {
-      color: #00ffaa;
-    }
-
-    .line-integrity {
-      color: rgba(0,255,102,0.65);
-    }
-
-    .line-time {
-      color: rgba(0,255,102,0.65);
-    }
-
-    .line-system {
-      color: #00ff66;
-    }
-
-    /* Legacy support */
-    .dim {
-      color: rgba(0,255,102,0.6);
+    .log {
+      line-height: 1.3;
     }
   </style>
 </head>
 <body>
-  <div class="terminal" id="terminal"></div>
+  <div id="terminal">
+    <div id="nav"></div>
+    <div id="logs"></div>
+  </div>
+
+  <script>
+    /* =========================
+       Phase 11.1 — Observability
+       ========================= */
+
+    /* ---- Deterministic PRNG ---- */
+    function seededRandom(seed) {
+      let x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    }
+
+    let tick = 1;
+
+    /* ---- Global State ---- */
+    const TunnelState = {
+      phase: "9.6",
+      status: "STABLE",
+      location: "TBILISI_HUB_01",
+      depth: 42,
+      nodes: [
+        { id: "TBILISI_01", load: 0.52, status: "STABLE" }
+      ],
+      nav: {
+        regime: "ACCUMULATION",
+        bias: "NEUTRAL",
+        confidence: "MEDIUM",
+        risk: "NORMAL"
+      }
+    };
+
+    const MAX_LINES = 120;
+    const logsEl = document.getElementById("logs");
+    const navEl = document.getElementById("nav");
+
+    /* ---- Phase 10.4 NOP Emulator ---- */
+    function updateNavigationLayer() {
+      const r = seededRandom(tick);
+
+      // regime rotation (emulated, mutually exclusive)
+      const regimes = [
+        "ACCUMULATION",
+        "EXPANSION",
+        "COMPRESSION",
+        "EXHAUSTION",
+        "DISLOCATION"
+      ];
+      const regime = regimes[Math.floor(r * regimes.length)];
+
+      let bias = "UNDEFINED";
+      if (regime === "EXPANSION") bias = r > 0.5 ? "BULLISH" : "BEARISH";
+      if (regime === "ACCUMULATION") bias = "NEUTRAL";
+
+      const confidence = r > 0.75 ? "HIGH" : r > 0.4 ? "MEDIUM" : "LOW";
+      const risk =
+        regime === "DISLOCATION"
+          ? "EXTREME"
+          : r > 0.7
+          ? "ELEVATED"
+          : "NORMAL";
+
+      TunnelState.nav = { regime, bias, confidence, risk };
+    }
+
+    /* ---- State Update Logic ---- */
+    function updateState() {
+      const r = seededRandom(tick);
+
+      // smooth bounded drift
+      TunnelState.depth = Math.min(
+        100,
+        Math.max(0, TunnelState.depth + (r - 0.5) * 2)
+      );
+
+      TunnelState.nodes.forEach(n => {
+        n.load = Math.min(1, Math.max(0, n.load + (r - 0.5) * 0.05));
+      });
+
+      updateNavigationLayer();
+    }
+
+    /* ---- Render Logic ---- */
+    function renderNAV() {
+      const n = TunnelState.nav;
+      navEl.textContent =
+        `[NAV] REGIME:${n.regime}` +
+        ` | BIAS:${n.bias}` +
+        ` | CONFIDENCE:${n.confidence}` +
+        ` | RISK:${n.risk}`;
+    }
+
+    function renderLog() {
+      const barLen = 20;
+      const filled = Math.round((TunnelState.depth / 100) * barLen);
+      const bar =
+        "█".repeat(filled) + "░".repeat(barLen - filled);
+
+      const line =
+        `[TELEMETRY] depth=[${bar}] ${TunnelState.depth.toFixed(0)}%` +
+        ` | node:${TunnelState.nodes[0].id}` +
+        ` load:${TunnelState.nodes[0].load.toFixed(2)}`;
+
+      const div = document.createElement("div");
+      div.className = "log";
+      div.textContent = line;
+
+      logsEl.appendChild(div);
+
+      // cap lines
+      while (logsEl.children.length > MAX_LINES) {
+        logsEl.removeChild(logsEl.firstChild);
+      }
+
+      logsEl.parentElement.scrollTop =
+        logsEl.parentElement.scrollHeight;
+    }
+
+    function render() {
+      renderNAV();
+      renderLog();
+    }
+
+    /* ---- Render Loop ---- */
+    setInterval(() => {
+      tick++;
+      updateState();
+      render();
+    }, 900);
+  </script>
+</body>
+</html>
 
   <script>
     /* ================================
