@@ -47,6 +47,7 @@
        Phase 9.6.3 — Regime Signals (Pre-Risk, Non-Actionable)
        Phase 9.6.4 — Integrity Markers (Data Health & Silent Failure Detection)
        Phase 9.6.5 — Temporal Coherence (Clock Drift & Time Semantics)
+       Phase 9.6.6 — Narrative Compression (Semantic Density Control)
        ================================ */
 
     /* ---------- Deterministic PRNG ---------- */
@@ -93,6 +94,16 @@
         coherence: "LOCKED",
         lastCoherenceTick: 0,
         tickHistory: []
+      },
+      narrative: {
+        lastNodeSignature: null,
+        lastDepthSignature: null,
+        lastHeartbeatSignature: null,
+        nodeRepeatCount: 0,
+        depthRepeatCount: 0,
+        heartbeatRepeatCount: 0,
+        nodeLoadSum: 0,
+        depthSum: 0
       }
     };
 
@@ -110,6 +121,33 @@
     const DRIFT_THRESHOLD_MINOR = 2;
     const DRIFT_THRESHOLD_MAJOR = 5;
     const TICK_HISTORY_SIZE = 10;
+    const NARRATIVE_SUMMARY_INTERVAL = 5;
+
+    /* ---------- Narrative Compression Logic ---------- */
+    function computeSemanticSignature(type, data) {
+      // Generate deterministic semantic hash
+      if (type === "NODE") {
+        const loadBucket = Math.floor(data.load * 20) / 20; // 0.05 buckets
+        return `NODE:${data.id}:${loadBucket.toFixed(2)}:${data.status}`;
+      } else if (type === "DEPTH") {
+        const depthBucket = Math.floor(data.depth / 5) * 5; // 5% buckets
+        return `DEPTH:${depthBucket}`;
+      } else if (type === "HEARTBEAT") {
+        return "HEARTBEAT:OK";
+      }
+      return null;
+    }
+
+    function resetNarrative() {
+      TunnelState.narrative.lastNodeSignature = null;
+      TunnelState.narrative.lastDepthSignature = null;
+      TunnelState.narrative.lastHeartbeatSignature = null;
+      TunnelState.narrative.nodeRepeatCount = 0;
+      TunnelState.narrative.depthRepeatCount = 0;
+      TunnelState.narrative.heartbeatRepeatCount = 0;
+      TunnelState.narrative.nodeLoadSum = 0;
+      TunnelState.narrative.depthSum = 0;
+    }
 
     /* ---------- Integrity Computation Logic ---------- */
     function computeIntegrity() {
@@ -321,22 +359,66 @@
       return `[${type.padEnd(11)}] ${content}`;
     }
 
-    function generateTelemetryLines() {
-      const lines = [];
+    function generateCompressedTelemetry() {
+      const results = [];
       const node = TunnelState.nodes[0];
-      lines.push(
-        formatStreamLine(
-          "TELEMETRY",
-          `NODE ${node.id} | LOAD ${node.load.toFixed(2)} | ${node.status}`
-        )
-      );
-      lines.push(
-        formatStreamLine(
-          "TELEMETRY",
-          `TUNNEL DEPTH ${depthBar(TunnelState.depth)}`
-        )
-      );
-      return lines;
+      const depth = TunnelState.depth;
+
+      // Compute semantic signatures
+      const nodeSignature = computeSemanticSignature("NODE", { id: node.id, load: node.load, status: node.status });
+      const depthSignature = computeSemanticSignature("DEPTH", { depth });
+
+      // Node telemetry compression
+      if (nodeSignature === TunnelState.narrative.lastNodeSignature) {
+        TunnelState.narrative.nodeRepeatCount++;
+        TunnelState.narrative.nodeLoadSum += node.load;
+
+        // Emit summary every N repeats
+        if (TunnelState.narrative.nodeRepeatCount % NARRATIVE_SUMMARY_INTERVAL === 0) {
+          const avgLoad = TunnelState.narrative.nodeLoadSum / NARRATIVE_SUMMARY_INTERVAL;
+          results.push({
+            type: "TELEMETRY",
+            content: `NODE ${node.id} | LOAD stable (~${avgLoad.toFixed(2)}) | samples=${TunnelState.narrative.nodeRepeatCount}`
+          });
+          TunnelState.narrative.nodeLoadSum = 0;
+        }
+      } else {
+        // New signature, emit full message
+        results.push({
+          type: "TELEMETRY",
+          content: `NODE ${node.id} | LOAD ${node.load.toFixed(2)} | ${node.status}`
+        });
+        TunnelState.narrative.lastNodeSignature = nodeSignature;
+        TunnelState.narrative.nodeRepeatCount = 1;
+        TunnelState.narrative.nodeLoadSum = node.load;
+      }
+
+      // Depth telemetry compression
+      if (depthSignature === TunnelState.narrative.lastDepthSignature) {
+        TunnelState.narrative.depthRepeatCount++;
+        TunnelState.narrative.depthSum += depth;
+
+        // Emit summary every N repeats
+        if (TunnelState.narrative.depthRepeatCount % NARRATIVE_SUMMARY_INTERVAL === 0) {
+          const avgDepth = TunnelState.narrative.depthSum / NARRATIVE_SUMMARY_INTERVAL;
+          results.push({
+            type: "TELEMETRY",
+            content: `TUNNEL DEPTH ${depthBar(avgDepth)} | samples=${TunnelState.narrative.depthRepeatCount}`
+          });
+          TunnelState.narrative.depthSum = 0;
+        }
+      } else {
+        // New signature, emit full message
+        results.push({
+          type: "TELEMETRY",
+          content: `TUNNEL DEPTH ${depthBar(depth)}`
+        });
+        TunnelState.narrative.lastDepthSignature = depthSignature;
+        TunnelState.narrative.depthRepeatCount = 1;
+        TunnelState.narrative.depthSum = depth;
+      }
+
+      return results;
     }
 
     function generateHeartbeatLine() {
@@ -414,6 +496,12 @@
         }
       }
 
+      // Break narrative compression on any significant state transition
+      const narrativeBreak = timeChanged || integrityChanged || regimeChanged || confidenceThresholdCrossed;
+      if (narrativeBreak) {
+        resetNarrative();
+      }
+
       // Heartbeat line (every N ticks)
       if (tick % HEARTBEAT_INTERVAL === 0) {
         const heartbeat = document.createElement("div");
@@ -446,12 +534,12 @@
         fragment.appendChild(regimeLine);
       }
 
-      // Telemetry lines (every tick)
-      const telemetryLines = generateTelemetryLines();
-      telemetryLines.forEach(text => {
+      // Telemetry lines (compressed, every tick)
+      const compressedTelemetry = generateCompressedTelemetry();
+      compressedTelemetry.forEach(item => {
         const line = document.createElement("div");
         line.className = "line";
-        line.textContent = text;
+        line.textContent = formatStreamLine(item.type, item.content);
         fragment.appendChild(line);
       });
 
