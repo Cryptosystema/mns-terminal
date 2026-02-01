@@ -48,10 +48,10 @@
 
   <script>
     /* =========================
-       Phase 15.2 — Sanitization Stress & Edge Case Hardening
+       Phase 15.3 — Tier 1 UI Rendering (Bias & Stability)
        Market Navigation System (MNS)
        Target: mns.com.ge
-       Mode: Defense-in-Depth, Fail-Closed, Fuzz-Hardened
+       Mode: Tier 1 Projection, Fail-Closed, Text-Only
        ========================= */
 
     "use strict";
@@ -426,10 +426,14 @@
           scope: STATIC_NAV_PACKET.scope
         });
 
+        // Phase 15.3: Immediately render Tier 0 UI (remove Tier 1 projection)
+        renderNAV(currentPacket);
+
       } catch (err) {
         // Fail-safe: force reset
         validationEpoch++;
         currentPacket = null;
+        triggerFailSafe();
       }
     }
 
@@ -473,14 +477,14 @@
           
           if (valid) {
             // Valid Tier 1 packet received
-            // DO NOTHING VISUAL (Tier 1 UI not enabled yet)
-            // Store for future use (Phase 15.3+)
+            // Phase 15.3: Store and RENDER Tier 1 UI
             currentPacket = Object.freeze({
               nav: Object.freeze({...packet.nav}),
               meta: Object.freeze({...packet.meta}),
               status: packet.status ? Object.freeze({...packet.status}) : undefined
             });
-            // No render changes
+            // Phase 15.3: Render Tier 1 NAV line
+            renderNAV(currentPacket);
             return;
           } else {
             // Invalid Tier 1 → fail to Tier 0
@@ -544,19 +548,38 @@
       }
     }
 
-    /* ---- ARCHITECTURE: RENDER NAV (DOM Writes Only) ---- */
+    /* ---- ARCHITECTURE: RENDER NAV (Phase 15.3: Tier 1 Projection) ---- */
     function renderNAV(state) {
       try {
-        const safeState = sanitizeForTier0(state);
+        // Phase 15.3: Detect Tier 1 (validated packets only)
+        const isTier1 = 
+          state?.meta?.tier === 1 &&
+          state?.nav?.bias &&
+          state?.nav?.stability;
 
-        const navLine =
-          `[NAV] REGIME: ${safeState.regime}` +
-          ` | RISK: ${safeState.risk}` +
-          ` | CONFIDENCE: ${safeState.confidence}` +
-          ` | STATUS: ${safeState.status}` +
-          ` | SCOPE: ${safeState.scope}`;
+        if (isTier1) {
+          // Tier 1 rendering (bias + stability included)
+          const navLine =
+            `[NAV] REGIME: ${state.nav.regime}` +
+            ` | BIAS: ${state.nav.bias}` +
+            ` | STABILITY: ${state.nav.stability}` +
+            ` | RISK: ${state.nav.risk}` +
+            ` | CONFIDENCE: ${state.nav.confidence}`;
 
-        navEl.textContent = navLine;
+          navEl.textContent = navLine;
+        } else {
+          // Tier 0 rendering (sanitize and project Tier 0 fields only)
+          const safeState = sanitizeForTier0(state);
+
+          const navLine =
+            `[NAV] REGIME: ${safeState.regime}` +
+            ` | RISK: ${safeState.risk}` +
+            ` | CONFIDENCE: ${safeState.confidence}` +
+            ` | STATUS: ${safeState.status}` +
+            ` | SCOPE: ${safeState.scope}`;
+
+          navEl.textContent = navLine;
+        }
 
       } catch (err) {
         // Fail-safe render
