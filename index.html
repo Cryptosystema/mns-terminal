@@ -48,10 +48,10 @@
 
   <script>
     /* =========================
-       Phase 15.1 — Tier 1 Validation Infrastructure (No UI)
+       Phase 15.2 — Sanitization Stress & Edge Case Hardening
        Market Navigation System (MNS)
        Target: mns.com.ge
-       Mode: Defense-in-Depth, Cryptographic Gate
+       Mode: Defense-in-Depth, Fail-Closed, Fuzz-Hardened
        ========================= */
 
     "use strict";
@@ -92,16 +92,47 @@
       "HIGH"
     ]);
 
+    /* ---- BIAS LEVELS (TIER 1, IMMUTABLE) ---- */
+    const BIAS_LEVELS = Object.freeze([
+      "BULLISH",
+      "BEARISH",
+      "NEUTRAL"
+    ]);
+
+    /* ---- STABILITY LEVELS (TIER 1, IMMUTABLE) ---- */
+    const STABILITY_LEVELS = Object.freeze([
+      "FORMING",
+      "MATURE",
+      "WEAKENING"
+    ]);
+
+    /* ---- REENTRANCY LOCK (PHASE 15.2) ---- */
+    let validationEpoch = 0;
+
     /* ---- DOM REFERENCES ---- */
     const navEl = document.getElementById("nav");
     const statusEl = document.getElementById("status");
 
     /* ---- PHASE 15.1: CRYPTOGRAPHIC VALIDATION (Web Crypto API) ---- */
 
-    /* Base64 → Uint8Array */
+    /* Base64 → Uint8Array (Phase 15.2: Normalized, Strict) */
     function decodeBase64ToUint8(base64) {
       try {
-        const binaryString = atob(base64);
+        // Phase 15.2: Normalize input (trim, remove whitespace)
+        if (typeof base64 !== 'string') {
+          throw new Error("Not a string");
+        }
+        const normalized = base64.replace(/\s/g, '').trim();
+        if (normalized.length === 0) {
+          throw new Error("Empty Base64");
+        }
+        // Strict length check (Ed25519 signature = 64 bytes = 88 Base64 chars with padding)
+        // Public key = 32 bytes = 44 Base64 chars
+        if (normalized.length < 4) {
+          throw new Error("Base64 too short");
+        }
+        
+        const binaryString = atob(normalized);
         const len = binaryString.length;
         const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) {
@@ -146,24 +177,56 @@
       }
     }
 
-    /* Time Freshness Check */
+    /* Time Freshness Check (Phase 15.2: Strict ISO 8601) */
     function isFresh(issuedAtISO) {
       try {
+        // Type guard
+        if (typeof issuedAtISO !== 'string') return false;
+        
+        // Strict ISO 8601 format check (basic pattern)
+        const iso8601Pattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
+        if (!iso8601Pattern.test(issuedAtISO)) return false;
+        
         const issued = Date.parse(issuedAtISO);
         if (isNaN(issued)) return false;
+        
+        // Sanity check: not too far in past/future
         const now = Date.now();
         const skew = Math.abs(now - issued);
+        
+        // Reject if timestamp is unreasonable (> 1 year in past/future)
+        const maxReasonable = 365 * 24 * 60 * 60 * 1000;
+        if (skew > maxReasonable) return false;
+        
         return skew <= MAX_SKEW_MS;
       } catch (err) {
         return false;
       }
     }
 
-    /* Structural Gate (Whitelist Enforcement) */
+    /* Structural Gate (Phase 15.2: Strict Whitelist + Type Enforcement) */
     function structuralGate(packet) {
       try {
+        // Null/undefined check
+        if (!packet || typeof packet !== 'object') return false;
+        
+        // Prototype pollution defense
+        if (packet.__proto__ !== Object.prototype && packet.__proto__ !== null) {
+          return false;
+        }
+        
+        // Whitelist: allowed top-level keys only
+        const allowedKeys = ['nav', 'meta', 'status'];
+        const packetKeys = Object.keys(packet);
+        for (const key of packetKeys) {
+          if (!allowedKeys.includes(key)) return false;
+        }
+        
+        // Nav validation
+        if (!packet.nav || typeof packet.nav !== 'object') return false;
+        
         // Tier 1 markers present?
-        const hasTier1Fields = packet.nav?.bias || packet.nav?.stability;
+        const hasTier1Fields = packet.nav.bias || packet.nav.stability;
         
         // If Tier 1 fields present, require signature
         if (hasTier1Fields && !packet.meta?.signature) {
@@ -177,13 +240,32 @@
 
         // Required fields for Tier 1
         if (packet.meta?.tier === 1) {
-          if (!packet.nav?.regime) return false;
-          if (!packet.nav?.risk) return false;
-          if (!packet.nav?.confidence) return false;
-          if (!packet.nav?.bias) return false;
-          if (!packet.nav?.stability) return false;
-          if (!packet.meta?.issued_at) return false;
-          if (!packet.meta?.signature) return false;
+          // Nav field type checks
+          if (typeof packet.nav.regime !== 'string' || !REGIMES.includes(packet.nav.regime)) return false;
+          if (typeof packet.nav.risk !== 'string' || !RISK_LEVELS.includes(packet.nav.risk)) return false;
+          if (typeof packet.nav.confidence !== 'string' || !CONFIDENCE_LEVELS.includes(packet.nav.confidence)) return false;
+          if (typeof packet.nav.bias !== 'string' || !BIAS_LEVELS.includes(packet.nav.bias)) return false;
+          if (typeof packet.nav.stability !== 'string' || !STABILITY_LEVELS.includes(packet.nav.stability)) return false;
+          
+          // Meta validation
+          if (!packet.meta || typeof packet.meta !== 'object') return false;
+          if (typeof packet.meta.issued_at !== 'string') return false;
+          if (typeof packet.meta.signature !== 'string') return false;
+          if (typeof packet.meta.tier !== 'number' || packet.meta.tier !== 1) return false;
+          
+          // Whitelist nav fields for Tier 1
+          const allowedNavKeys = ['regime', 'risk', 'confidence', 'bias', 'stability'];
+          const navKeys = Object.keys(packet.nav);
+          for (const key of navKeys) {
+            if (!allowedNavKeys.includes(key)) return false;
+          }
+          
+          // Whitelist meta fields
+          const allowedMetaKeys = ['tier', 'issued_at', 'signature'];
+          const metaKeys = Object.keys(packet.meta);
+          for (const key of metaKeys) {
+            if (!allowedMetaKeys.includes(key)) return false;
+          }
         }
 
         return true;
@@ -192,9 +274,34 @@
       }
     }
 
-    /* Build Canonical Payload (Strict Order) */
+    /* Build Canonical Payload (Phase 15.2: Strict Order + Type Guards) */
     function buildCanonicalPayload(packet) {
       try {
+        // Strict type validation
+        if (typeof packet.meta.tier !== 'number') throw new Error("Invalid tier type");
+        if (typeof packet.nav.regime !== 'string') throw new Error("Invalid regime type");
+        if (typeof packet.nav.risk !== 'string') throw new Error("Invalid risk type");
+        if (typeof packet.nav.confidence !== 'string') throw new Error("Invalid confidence type");
+        if (typeof packet.nav.bias !== 'string') throw new Error("Invalid bias type");
+        if (typeof packet.nav.stability !== 'string') throw new Error("Invalid stability type");
+        if (typeof packet.meta.issued_at !== 'string') throw new Error("Invalid timestamp type");
+        
+        // No NaN, Infinity, null, undefined in strings
+        const fields = [
+          packet.nav.regime,
+          packet.nav.risk,
+          packet.nav.confidence,
+          packet.nav.bias,
+          packet.nav.stability,
+          packet.meta.issued_at
+        ];
+        
+        for (const field of fields) {
+          if (field.includes('\0') || field.includes('\uFFFD')) {
+            throw new Error("Invalid characters in payload");
+          }
+        }
+        
         const payload = 
           String(packet.meta.tier) +
           packet.nav.regime +
@@ -211,11 +318,21 @@
       }
     }
 
-    /* Tier 1 Validation Pipeline (Async) */
-    async function validateTier1(packet) {
+    /* Tier 1 Validation Pipeline (Phase 15.2: Reentrancy-Safe, Hardened) */
+    async function validateTier1(packet, epoch) {
       try {
+        // Phase 15.2: Epoch check (prevent stale validation results)
+        if (epoch !== validationEpoch) {
+          return false;
+        }
+        
         // Step A: Structural gate
         if (!structuralGate(packet)) {
+          return false;
+        }
+        
+        // Epoch recheck (async boundary)
+        if (epoch !== validationEpoch) {
           return false;
         }
 
@@ -226,20 +343,45 @@
 
         // Step C: Build canonical payload
         const payloadBytes = buildCanonicalPayload(packet);
+        
+        // Phase 15.2: Length sanity check
+        if (payloadBytes.length === 0 || payloadBytes.length > 1024) {
+          return false;
+        }
 
         // Step D: Decode signature
         const signatureBytes = decodeBase64ToUint8(packet.meta.signature);
+        
+        // Phase 15.2: Ed25519 signature must be exactly 64 bytes
+        if (signatureBytes.length !== 64) {
+          return false;
+        }
+        
+        // Epoch recheck (async boundary)
+        if (epoch !== validationEpoch) {
+          return false;
+        }
 
-        // Step E: Import public key (cached in real impl, but stateless per spec)
+        // Step E: Import public key (stateless per spec)
         const publicKey = await importPublicKey(PUB_KEY_BASE64);
+        
+        // Epoch recheck (async boundary)
+        if (epoch !== validationEpoch) {
+          return false;
+        }
 
         // Step F: Verify signature
         const valid = await verifySignature(payloadBytes, signatureBytes, publicKey);
+        
+        // Final epoch check
+        if (epoch !== validationEpoch) {
+          return false;
+        }
 
         return valid;
 
       } catch (err) {
-        // Silent fail
+        // Silent fail (no logs)
         return false;
       }
     }
@@ -251,9 +393,12 @@
     /* Global state holder (for potential future Tier 1 state) */
     let currentPacket = null;
 
-    /* Sanitize to Tier 0 (Idempotent Hard Reset) */
+    /* Sanitize to Tier 0 (Phase 15.2: Memory Hygiene, Zero-Reference) */
     function sanitizeToTier0() {
       try {
+        // Phase 15.2: Increment epoch to invalidate in-flight validations
+        validationEpoch++;
+        
         // Physically remove Tier 1 artifacts
         currentPacket = null;
         
@@ -261,35 +406,80 @@
         if (window.tier1State) {
           delete window.tier1State;
         }
+        
+        // Phase 15.2: Clear any cached crypto objects (defense-in-depth)
+        if (window.cachedPublicKey) {
+          delete window.cachedPublicKey;
+        }
+        
+        // Phase 15.2: Zero out any temporary validation buffers
+        if (window.validationBuffer) {
+          delete window.validationBuffer;
+        }
 
-        // Reset to static Tier 0 packet
-        currentPacket = STATIC_NAV_PACKET;
+        // Reset to static Tier 0 packet (deep clone to prevent mutation)
+        currentPacket = Object.freeze({
+          regime: STATIC_NAV_PACKET.regime,
+          risk: STATIC_NAV_PACKET.risk,
+          confidence: STATIC_NAV_PACKET.confidence,
+          status: STATIC_NAV_PACKET.status,
+          scope: STATIC_NAV_PACKET.scope
+        });
 
       } catch (err) {
         // Fail-safe: force reset
+        validationEpoch++;
         currentPacket = null;
       }
     }
 
     /* ---- PHASE 15.1: PACKET INGESTION (Validation Integration) ---- */
 
-    /* Update State with Validation Gate */
+    /* Update State (Phase 15.2: Reentrancy-Safe, Fail-Closed) */
     async function updateState(packet) {
+      // Phase 15.2: Increment epoch (invalidate previous in-flight validations)
+      const currentEpoch = ++validationEpoch;
+      
       try {
+        // Phase 15.2: Input sanitization (null/undefined/non-object)
+        if (!packet || typeof packet !== 'object') {
+          sanitizeToTier0();
+          renderNAV(STATIC_NAV_PACKET);
+          return;
+        }
+        
+        // Phase 15.2: JSON sanity checks (detect NaN, Infinity, prototype pollution)
+        const jsonStr = JSON.stringify(packet);
+        if (jsonStr.includes('null') || jsonStr.includes('NaN') || jsonStr.includes('Infinity')) {
+          sanitizeToTier0();
+          renderNAV(STATIC_NAV_PACKET);
+          return;
+        }
+        
         // Detect Tier 1 attempt
         const isTier1Attempt = packet?.meta?.tier === 1 || 
                                packet?.nav?.bias || 
                                packet?.nav?.stability;
 
         if (isTier1Attempt) {
-          // Validate Tier 1
-          const valid = await validateTier1(packet);
+          // Validate Tier 1 with epoch tracking
+          const valid = await validateTier1(packet, currentEpoch);
+          
+          // Phase 15.2: Epoch check after async validation
+          if (currentEpoch !== validationEpoch) {
+            // Stale result, another updateState() was called
+            return;
+          }
           
           if (valid) {
             // Valid Tier 1 packet received
             // DO NOTHING VISUAL (Tier 1 UI not enabled yet)
-            // Store for future use (Phase 15.2+)
-            currentPacket = packet;
+            // Store for future use (Phase 15.3+)
+            currentPacket = Object.freeze({
+              nav: Object.freeze({...packet.nav}),
+              meta: Object.freeze({...packet.meta}),
+              status: packet.status ? Object.freeze({...packet.status}) : undefined
+            });
             // No render changes
             return;
           } else {
