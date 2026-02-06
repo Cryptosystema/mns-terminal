@@ -1,7 +1,7 @@
 # Integration Contract — Phase 22
 ## Frontend ↔ Backend Integration Specification
 
-**Document Version:** 1.1  
+**Document Version:** 1.2  
 **Date:** 2026-02-06  
 **Status:** Active  
 **Scope:** Delivery mechanisms and integration rules between MNS Terminal (frontend) and MNS Backend
@@ -411,6 +411,144 @@ Per Phase 22.2 constraints, the following are **intentionally NOT implemented:**
 
 ---
 
+## SECTION 7.6 — Phase 22.3 Degraded Mode Implementation
+
+**Implementation date:** 2026-02-06  
+**Status:** COMPLETE  
+**Module:** `src/infrastructure/delivery/deliveryController.ts`
+
+### Architecture Overview
+
+Phase 22.3 implements the delivery orchestrator that manages SSE (primary) and REST (fallback) mechanisms with strict mutual exclusion. This fulfills the degradation and recovery requirements specified in Sections 4.2 and 4.3.
+
+### Implementation Details
+
+**Module location:** `src/infrastructure/delivery/deliveryController.ts`
+
+**Exported components:**
+1. **DeliveryMode enum** — Delivery mode states (SSE_PRIMARY, REST_DEGRADED)
+2. **DeliveryController class** — Orchestrator for SSE/REST lifecycle
+3. **createDeliveryController factory** — Factory function for controller instantiation
+
+**Key features:**
+- Mutual exclusion enforcement (SSE and REST NEVER active simultaneously)
+- SSE primary mode with automatic EventSource reconnection
+- REST degraded mode with 2000ms polling interval
+- SSE recovery attempts every 30000ms when in REST mode
+- Mode transition logging (no packet content logging)
+- Callback-based packet forwarding with source annotation
+
+### Contract Adherence
+
+**Section 2.2 compliance (REST Endpoint):**
+- ✓ Polls `GET /api/v1/latest` (configurable endpoint)
+- ✓ Parses JSON response
+- ✓ Validates content-type header
+- ✓ Forwards packets with source annotation (REST_DEGRADED)
+
+**Section 3 compliance (Delivery Priority Model):**
+- ✓ SSE is always PRIMARY mode
+- ✓ REST is FALLBACK ONLY
+- ✓ Hard constraint: SSE and REST never operate in parallel
+- ✓ Mode switching is deterministic and logged
+
+**Section 4.2 compliance (Degradation SSE → REST):**
+- ✓ Triggers on SSEConnectionState.ERROR
+- ✓ Stops SSE client before starting REST polling
+- ✓ REST polling interval: 2000ms (configurable)
+- ✓ Immediate first poll (no initial delay)
+
+**Section 4.3 compliance (Recovery REST → SSE):**
+- ✓ Recovery attempts every 30000ms (configurable)
+- ✓ Stops REST polling before attempting SSE connection
+- ✓ On successful SSE CONNECTED → remains in SSE_PRIMARY mode
+- ✓ On SSE failure → automatic degradation back to REST
+
+**Section 5 compliance (Frontend Responsibilities):**
+- ✓ Connection lifecycle orchestration (start/stop)
+- ✓ Single source of truth enforcement (one mode at a time)
+- ✓ Mode awareness exposure (getMode, isActive)
+- ✓ Sequential packet processing via callback
+
+**Section 7 compliance (Observability):**
+- ✓ Logs mode transitions (SSE_PRIMARY ↔ REST_DEGRADED)
+- ✓ Logs SSE state changes
+- ✓ Logs REST polling errors
+- ✓ NEVER logs packet content
+- ✓ NEVER logs signatures or payload data
+
+### Timing Guarantees
+
+**REST polling interval:** 2000ms (2 seconds)  
+**Rationale:** Balances data freshness with backend load during degraded mode
+
+**SSE recovery interval:** 30000ms (30 seconds)  
+**Rationale:** Aligns with backend keepalive interval assumption (30s pings)
+
+**No exponential backoff:** Fixed intervals ensure predictable behavior
+
+### Mutual Exclusion Guarantees
+
+**CRITICAL INVARIANT:** At any given time, exactly ONE of the following is true:
+- SSE client is connected AND REST polling is stopped
+- REST polling is active AND SSE client is disconnected
+
+**Enforcement mechanisms:**
+1. `startSSEMode()` calls `stopRESTMode()` before creating SSE client
+2. `degradeToRESTMode()` calls `stopSSEMode()` before starting REST polling
+3. `attemptSSERecovery()` calls `stopRESTMode()` before SSE connection attempt
+4. Timers are cleared when stopping respective modes
+5. State machine ensures only one mode transition at a time
+
+**Verification:** Logs show mode transitions with explicit OLD → NEW format
+
+### Explicit Non-Implementation
+
+Per Phase 22.3 constraints, the following are **intentionally NOT implemented:**
+
+1. **Parallel delivery modes** — SSE + REST simultaneously (explicitly prohibited by contract)
+2. **Exponential backoff** — Fixed intervals only
+3. **Manual retries** — Each mechanism handles its own errors
+4. **Cryptographic validation** — Delegated to state layer
+5. **UI components** — Pure infrastructure module
+6. **Mode indicators** — Deferred to product UI phase
+7. **User controls** — No manual mode override
+8. **Authentication** — Out of scope per Section 6.1
+
+### Integration Path
+
+**Current status:** Module implemented but not yet wired to existing inline JS in index.html
+
+**Integration approach (future):**
+1. Set up build tooling (TypeScript + bundler)
+2. Import DeliveryController into main application
+3. Replace inline SSE client with DeliveryController instantiation
+4. Wire onPacket callback to existing updateState function
+5. Wire onModeChange callback to status rendering logic
+6. Remove inline SSE/REST logic from index.html
+
+**No breaking changes required:** Existing state validation pipeline remains unchanged.
+
+### Testing Status
+
+**Test infrastructure:** Not present in repository
+
+**Rationale for no tests:**
+- No package.json or test framework
+- Project uses inline JavaScript without build tooling
+- Tests deferred until module bundler integration
+
+**Test coverage when infrastructure added:**
+- Mode switch SSE → REST (on SSE ERROR state)
+- Mode switch REST → SSE (on successful recovery)
+- Mutual exclusion verification (no parallel modes)
+- REST polling interval accuracy
+- SSE recovery interval accuracy
+- Timer cleanup on stop()
+- Callback invocation with correct source annotation
+
+---
+
 ## SECTION 8 — Forward Compatibility
 
 This contract enables structured implementation across future phases:
@@ -472,6 +610,7 @@ Changes to delivery mechanisms will require contract amendment.
 **Changelog:**
 - 2026-02-06: Initial version (Phase 22.1)
 - 2026-02-06: Added Phase 22.2 Implementation Notes (Section 7.5)
+- 2026-02-06: Added Phase 22.3 Degraded Mode Implementation (Section 7.6)
 
 ---
 
