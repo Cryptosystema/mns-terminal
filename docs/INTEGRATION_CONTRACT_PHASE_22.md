@@ -1,7 +1,7 @@
 # Integration Contract — Phase 22
 ## Frontend ↔ Backend Integration Specification
 
-**Document Version:** 1.0  
+**Document Version:** 1.1  
 **Date:** 2026-02-06  
 **Status:** Active  
 **Scope:** Delivery mechanisms and integration rules between MNS Terminal (frontend) and MNS Backend
@@ -312,6 +312,105 @@ Logging is for **delivery mode debugging only**, not business analytics.
 
 ---
 
+## SECTION 7.5 — Phase 22.2 Implementation Notes
+
+**Implementation date:** 2026-02-06  
+**Status:** COMPLETE  
+**Module:** `src/infrastructure/sse/sseClient.ts`
+
+### Architecture Overview
+
+Phase 22.2 implements the SSE client as a standalone, framework-agnostic TypeScript module located in the infrastructure layer. The implementation strictly adheres to all contract specifications.
+
+### Implementation Details
+
+**Module location:** `src/infrastructure/sse/sseClient.ts`
+
+**Exported components:**
+1. **SSEConnectionState enum** — Connection lifecycle states (DISCONNECTED, CONNECTING, CONNECTED, ERROR)
+2. **MarketPacket types** — TypeScript interfaces for Tier0/Tier1/Tier2 packet structures (opaque to business logic)
+3. **SSEClient class** — Core client implementation
+4. **createSSEClient factory** — Factory function for client instantiation
+
+**Key features:**
+- Native EventSource API usage (browser-provided, handles automatic reconnection)
+- Explicit lifecycle management (connect/disconnect methods)
+- Throttling (1Hz default, configurable)
+- Payload size validation (16KB default, configurable)
+- Structural packet validation (tier detection, basic shape checking)
+- Event forwarding to state layer via callbacks
+- Comprehensive lifecycle logging (no packet content logging)
+
+### Contract Adherence
+
+**Section 2.1 compliance (SSE Endpoint):**
+- ✓ Connects to `GET /stream` (configurable endpoint)
+- ✓ Uses EventSource API per RFC 6202
+- ✓ Handles `nav_update` custom event type
+- ✓ Handles `keep_alive` ping events
+
+**Section 4.1 compliance (Failure Detection):**
+- ✓ Detects EventSource error events
+- ✓ Exposes ERROR state
+- Note: Timeout/keepalive monitoring delegated to state layer (will be implemented in Phase 22.3 orchestrator)
+
+**Section 5 compliance (Frontend Responsibilities):**
+- ✓ Lifecycle management (connect/disconnect)
+- ✓ State exposure (getState, isConnected)
+- ✓ Sequential packet processing via callback
+- Note: State consistency enforcement delegated to state layer
+
+**Section 7 compliance (Observability):**
+- ✓ Logs connection opened/closed
+- ✓ Logs state transitions
+- ✓ Logs errors (without sensitive data)
+- ✓ NEVER logs packet content
+- ✓ NEVER logs signatures or payload data
+
+### Explicit Non-Implementation
+
+Per Phase 22.2 constraints, the following are **intentionally NOT implemented:**
+
+1. **REST fallback** — Deferred to Phase 22.3
+2. **Retry logic** — Browser EventSource handles this automatically
+3. **Timers/keepalive monitoring** — Delegated to orchestrator (Phase 22.3)
+4. **Cryptographic validation** — Delegated to state layer (existing validation pipeline)
+5. **Business logic** — Packets are opaque; client only validates structure
+6. **UI components** — Pure infrastructure module
+7. **State management** — Uses callbacks to forward packets to existing state layer
+
+### Integration Path
+
+**Current status:** Module implemented but not yet wired to existing inline JS in index.html
+
+**Integration approach (future):**
+1. Convert project to use ES modules or bundler (e.g., Vite, webpack)
+2. Import SSEClient into main application logic
+3. Replace inline EventSource code with SSEClient instantiation
+4. Wire onMessage callback to existing updateState function
+5. Wire onStateChange callback to UI status indicators
+
+**No breaking changes required:** Existing state validation pipeline (validatePacket, updateState, renderNAV) remains unchanged.
+
+### Testing Status
+
+**Test infrastructure:** Not present in repository
+
+**Rationale for no tests:**
+- No package.json, tsconfig.json, or test framework detected
+- Project currently uses inline JavaScript without build tooling
+- Tests deferred until module bundler integration (Phase 22.4 or 23+)
+
+**Test coverage when infrastructure added:**
+- Mock EventSource lifecycle (open, message, error, close)
+- Throttling behavior (drops messages within throttle window)
+- Payload size enforcement (rejects oversized messages)
+- JSON parse error handling
+- State transition sequences
+- Callback invocation verification
+
+---
+
 ## SECTION 8 — Forward Compatibility
 
 This contract enables structured implementation across future phases:
@@ -372,6 +471,7 @@ Changes to delivery mechanisms will require contract amendment.
 
 **Changelog:**
 - 2026-02-06: Initial version (Phase 22.1)
+- 2026-02-06: Added Phase 22.2 Implementation Notes (Section 7.5)
 
 ---
 
