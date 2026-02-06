@@ -264,7 +264,7 @@ export class SSEClient {
     }
   }
   
-  private handleError(event: Event): void {
+  private handleError(_event: Event): void {
     this.logLifecycle("Connection error");
     this.setState(SSEConnectionState.ERROR);
     
@@ -324,7 +324,7 @@ export class SSEClient {
     }
   }
   
-  private handleKeepAlive(event: MessageEvent): void {
+  private handleKeepAlive(_event: MessageEvent): void {
     // Keep-alive ping from backend (no action required)
     if (this.handlers.onKeepAlive) {
       this.handlers.onKeepAlive();

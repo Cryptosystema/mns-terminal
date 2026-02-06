@@ -1,7 +1,7 @@
 # Integration Contract — Phase 22
 ## Frontend ↔ Backend Integration Specification
 
-**Document Version:** 1.2  
+**Document Version:** 1.3  
 **Date:** 2026-02-06  
 **Status:** Active  
 **Scope:** Delivery mechanisms and integration rules between MNS Terminal (frontend) and MNS Backend
@@ -549,6 +549,169 @@ Per Phase 22.3 constraints, the following are **intentionally NOT implemented:**
 
 ---
 
+## SECTION 7.7 — Phase 22.4 Integration Wiring + UX Signals
+
+**Implementation date:** 2026-02-06  
+**Status:** COMPLETE  
+**Modules:** Build tooling + `src/main.ts` + minimal UX indicator
+
+### Architecture Overview
+
+Phase 22.4 completes the integration by wiring DeliveryController (Phase 22.3) into the application bootstrap and adding minimal UX signals for delivery mode visibility. This is the first operational integration of the SSE/REST infrastructure.
+
+### Implementation Details
+
+**Build tooling added:**
+- `package.json` — Vite + TypeScript configuration
+- `tsconfig.json` — TypeScript compiler settings (ES2020, bundler mode)
+- `vite.config.ts` — Dev server + proxy configuration for `/stream` and `/api` endpoints
+- `.gitignore` — Standard Node.js ignore patterns
+
+**Application entry point:**
+- `src/main.ts` (643 lines) — Bootstrap logic
+  - Imports DeliveryController and MarketPacket types
+  - Validates packets using existing cryptographic pipeline
+  - Wires DeliveryController callbacks to state layer
+  - Handles mode changes and updates UI indicator
+  - Manages shutdown on window.beforeunload
+
+**Index.html changes:**
+- Removed all inline JavaScript (722 lines deleted)
+- Added minimal delivery mode indicator: `<div id="delivery-mode">`
+- Loads `src/main.ts` via Vite module system
+
+### UX Signal Implementation
+
+**Indicator location:** Top of terminal output (above NAV display)  
+**Values displayed:**
+- `Status: LIVE` — When DeliveryMode.SSE_PRIMARY active
+- `Status: DEGRADED` — When DeliveryMode.REST_DEGRADED active
+- `Status: INITIALIZING` — During bootstrap (before controller starts)
+
+**Update trigger:** Only on `onModeChange` callback (not per-packet)
+
+**Styling:**
+- Font size: 0.9em
+- Opacity: 0.6 (de-emphasized, non-intrusive)
+- No animations
+- No color changes
+- No tooltips or explanations
+
+**Explicitly NOT implemented:**
+- Graphs or visualizations
+- Mode history or metrics
+- User controls (manual mode switching)
+- Detailed error messages
+- Loading spinners
+
+### Wiring Details
+
+**DeliveryController initialization:**
+```typescript
+const controller = createDeliveryController(
+  {
+    sseEndpoint: "/stream",
+    restEndpoint: "/api/v1/latest",
+    restPollingInterval: 2000,
+    sseRecoveryInterval: 30000
+  },
+  handlers
+);
+```
+
+**Callback handlers:**
+- `onPacket` — Forwards packets to existing `updateState()` validation pipeline
+- `onModeChange` — Updates delivery mode indicator UI
+- `onError` — Logs errors to console (no user-facing alerts)
+
+**Shutdown handling:**
+```typescript
+window.addEventListener('beforeunload', () => {
+  controller.stop();
+});
+```
+
+**Lifecycle:**
+1. Application starts
+2. Renders static Tier0 packet
+3. Starts DeliveryController (attempts SSE connection)
+4. On SSE ERROR → mode switches to REST_DEGRADED (UI shows "DEGRADED")
+5. On SSE recovery → mode switches back to SSE_PRIMARY (UI shows "LIVE")
+6. On page unload → controller.stop() shuts down cleanly
+
+### Contract Adherence
+
+**Section 5 compliance (Frontend Responsibilities):**
+- ✓ Connection lifecycle management (start on bootstrap, stop on unload)
+- ✓ State consistency (single delivery mode enforced by controller)
+- ✓ Mode awareness (UI indicator reflects current mode)
+- ✓ User transparency (LIVE vs DEGRADED clearly displayed)
+
+**Section 7 compliance (Observability):**
+- ✓ No packet content displayed in mode indicator
+- ✓ No signatures or keys exposed
+- ✓ Minimal UI footprint (one line of text)
+
+### Build & Run
+
+**Development server:**
+```bash
+npm install
+npm run dev
+```
+
+**Production build:**
+```bash
+npm run build
+npm run preview
+```
+
+**Backend proxy:**
+- Vite proxies `/stream` → `http://localhost:8080/stream`
+- Vite proxies `/api` → `http://localhost:8080/api`
+
+### Smoke Checks
+
+See `docs/SMOKE_CHECKS.md` for manual verification procedures.
+
+**Expected behavior:**
+1. SSE available → UI shows "Status: LIVE"
+2. Backend `/stream` down → UI transitions to "Status: DEGRADED" after ~2s
+3. Backend `/stream` restored → UI transitions back to "Status: LIVE" within 30s
+
+### Explicit Non-Implementation
+
+Per Phase 22.4 constraints, the following are **intentionally NOT implemented:**
+
+1. **Product UI** — No charts, graphs, or market data visualizations
+2. **UX polish** — No animations, color schemes, or branding
+3. **User controls** — No manual mode switching or settings
+4. **E2E tests** — Deferred to Phase 22.5
+5. **Metrics/alerts** — No error rate tracking or notifications
+6. **Historical view** — No packet history or replay
+7. **Multi-device sync** — Single-tab application only
+
+### Integration Status
+
+**Current state:** FULLY WIRED AND OPERATIONAL
+
+**What works:**
+- DeliveryController integrated into bootstrap
+- SSE primary mode active on startup
+- REST degraded mode on SSE failure
+- SSE recovery from degraded mode
+- UI indicator updates on mode transitions
+- Clean shutdown on page unload
+
+**What requires backend:**
+- Actual SSE connection to `/stream`
+- Actual REST responses from `/api/v1/latest`
+- Real packet delivery for live operation
+
+**Smoke testing:** Requires backend running on `localhost:8080`
+
+---
+
 ## SECTION 8 — Forward Compatibility
 
 This contract enables structured implementation across future phases:
@@ -611,6 +774,7 @@ Changes to delivery mechanisms will require contract amendment.
 - 2026-02-06: Initial version (Phase 22.1)
 - 2026-02-06: Added Phase 22.2 Implementation Notes (Section 7.5)
 - 2026-02-06: Added Phase 22.3 Degraded Mode Implementation (Section 7.6)
+- 2026-02-06: Added Phase 22.4 Integration Wiring + UX Signals (Section 7.7)
 
 ---
 
