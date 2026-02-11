@@ -1,0 +1,227 @@
+/**
+ * Terminal Layout & Components
+ * Phase 25: Professional UI/UX
+ */
+
+/* ===== TERMINAL CONTAINER ===== */
+#terminal {
+  min-height: 100vh;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--bg-primary);
+}
+
+/* ===== HEADER SECTION ===== */
+.terminal-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+#delivery-mode {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ===== BTC PRICE DISPLAY ===== */
+#btc-price {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-bold);
+  color: var(--terminal-green);
+  padding: var(--space-4);
+  background: rgba(0, 255, 136, 0.05);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: var(--border-radius-lg);
+  letter-spacing: 0.05em;
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+#btc-price::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+#btc-price.updating::before {
+  left: 100%;
+}
+
+#btc-price.loading {
+  animation: pulse-green 1.5s ease-in-out infinite;
+}
+
+/* ===== MARKET REGIMES ===== */
+#regimes {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.regime-badge {
+  position: relative;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  transition: all var(--transition-fast);
+  cursor: help;
+}
+
+.regime-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Regime color coding */
+.regime-low,
+.regime-normal,
+.regime-stable {
+  color: var(--terminal-green);
+  background: rgba(0, 255, 136, 0.08);
+}
+
+.regime-moderate,
+.regime-consolidating {
+  color: var(--terminal-yellow);
+  background: rgba(255, 170, 0, 0.08);
+}
+
+.regime-high,
+.regime-volatile,
+.regime-elevated {
+  color: var(--terminal-red);
+  background: rgba(255, 68, 68, 0.08);
+}
+
+.regime-crisis,
+.regime-extreme {
+  color: #ff0000;
+  background: rgba(255, 0, 0, 0.12);
+  animation: pulse-red 2s ease-in-out infinite;
+}
+
+/* ===== CONFIDENCE INDICATOR ===== */
+#confidence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.confidence-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--terminal-green), var(--terminal-cyan));
+  border-radius: var(--border-radius-sm);
+  transition: width 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+/* ===== NAV & STATUS ===== */
+#nav {
+  font-weight: var(--font-bold);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-md);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+#status {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  animation: heartbeat 4s ease-in-out infinite;
+}
+
+/* ===== LAST UPDATE ===== */
+#last-update {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(0, 255, 136, 0);
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 0, 0, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes heartbeat {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}

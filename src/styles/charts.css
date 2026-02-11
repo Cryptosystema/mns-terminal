@@ -1,0 +1,191 @@
+/**
+ * Chart Styles
+ * Phase 25: Data Visualization
+ */
+
+/* ===== CHART CONTAINERS ===== */
+.chart-section {
+  margin-top: var(--space-8);
+  padding: var(--space-6);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-lg);
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.chart-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.chart-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  margin-top: var(--space-4);
+}
+
+.chart-container canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ===== FORECAST CHART ===== */
+#forecast-chart-section {
+  margin-top: var(--space-6);
+}
+
+#forecast-chart-container {
+  height: 350px;
+}
+
+/* ===== PRICE HISTORY CHART ===== */
+#price-history-section {
+  margin-top: var(--space-6);
+}
+
+#price-history-container {
+  height: 250px;
+}
+
+/* ===== CONFIDENCE GAUGE ===== */
+.confidence-gauge-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-lg);
+  margin-top: var(--space-4);
+}
+
+.confidence-gauge svg {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* ===== CHART GRID LAYOUT (Desktop) ===== */
+@media (min-width: 1024px) {
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-6);
+    margin-top: var(--space-8);
+  }
+  
+  #forecast-chart-section {
+    margin-top: 0;
+  }
+  
+  #price-history-section {
+    margin-top: 0;
+    grid-column: 1 / 2;
+  }
+  
+  .confidence-gauge-container {
+    grid-column: 2 / 3;
+    grid-row: 1 / 3;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  #forecast-chart-container {
+    height: 400px;
+  }
+  
+  #price-history-container {
+    height: 300px;
+  }
+}
+
+/* ===== LOADING STATE FOR CHARTS ===== */
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-secondary);
+}
+
+.chart-loading .spinner {
+  margin-right: var(--space-3);
+}
+
+/* ===== CHART NO DATA STATE ===== */
+.chart-no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.chart-no-data-icon {
+  font-size: var(--font-size-4xl);
+  margin-bottom: var(--space-4);
+  opacity: 0.5;
+}
+
+.chart-no-data-text {
+  font-size: var(--font-size-base);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .chart-section {
+    padding: var(--space-4);
+  }
+  
+  .chart-container {
+    height: 250px;
+  }
+  
+  #forecast-chart-container {
+    height: 280px;
+  }
+  
+  #price-history-container {
+    height: 200px;
+  }
+  
+  .chart-title {
+    font-size: var(--font-size-base);
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-section {
+    padding: var(--space-3);
+  }
+  
+  .chart-container {
+    height: 200px;
+  }
+  
+  #forecast-chart-container {
+    height: 220px;
+  }
+  
+  #price-history-container {
+    height: 180px;
+  }
+}

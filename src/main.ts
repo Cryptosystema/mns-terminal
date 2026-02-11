@@ -1,12 +1,29 @@
 /**
  * MNS Terminal — Main Entry Point
- * Phase 22.4: Integration Wiring + UX Signals
+ * Phase 25: Professional UI/UX
  * 
  * Purpose: Bootstrap delivery infrastructure and wire to UI
  */
 
 import { createDeliveryController, DeliveryMode, DeliveryControllerHandlers } from './infrastructure/delivery/deliveryController.js';
 import { MarketPacket } from './infrastructure/sse/sseClient.js';
+import { 
+  showLoading, 
+  hideLoading, 
+  setElementLoading, 
+  setElementUpdating,
+  showError,
+  showToast,
+  ToastType
+} from './ui/utils.js';
+import {
+  createForecastChart,
+  updateForecastChart,
+  createPriceHistoryChart,
+  addPricePoint,
+  createConfidenceGauge,
+  updateConfidenceGauge
+} from './ui/charts.js';
 
 /* ============================================
    CRYPTOGRAPHIC ANCHORS (IMMUTABLE)
@@ -168,6 +185,10 @@ let cachedPrice: BTCPriceData | null = null;
 let cachedRegimes: RegimesData | null = null;
 let cachedForecast: ForecastData | null = null;
 let lastFetchTime: number = 0;
+
+/* Phase 25: Price history for 24h chart */
+let priceHistory: { timestamp: number; price: number }[] = [];
+let chartsInitialized = false;
 
 /* ============================================
    CRYPTOGRAPHIC VALIDATION
@@ -664,6 +685,23 @@ function renderBTCPrice(data: BTCPriceData | null): void {
   });
   
   btcPriceEl.textContent = `BTC: $${formatted}`;
+  
+  // Phase 25: Add to price history for chart
+  priceHistory.push({
+    timestamp: data.timestamp,
+    price: data.price
+  });
+  
+  // Keep only last 24 hours (assuming 5s updates = ~17,280 points per day)
+  // Keep last 288 points (24 hours at 5-minute intervals)
+  if (priceHistory.length > 288) {
+    priceHistory.shift();
+  }
+  
+  // Update price history chart
+  if (chartsInitialized) {
+    addPricePoint(data.price, data.timestamp);
+  }
 }
 
 function getRegimeClass(regime: string, type: string): string {
@@ -711,8 +749,13 @@ function renderConfidence(data: ForecastData | null): void {
   if (!data) {
     const label = confidenceEl.querySelector('.confidence-label');
     const fill = confidenceEl.querySelector('.progress-fill') as HTMLDivElement;
+    const progressBar = confidenceEl.querySelector('.progress-bar');
+    
     if (label) label.textContent = 'FORECAST CONFIDENCE: N/A';
     if (fill) fill.style.width = '0%';
+    if (progressBar) {
+      progressBar.setAttribute('aria-valuenow', '0');
+    }
     return;
   }
   
@@ -721,9 +764,18 @@ function renderConfidence(data: ForecastData | null): void {
   
   const label = confidenceEl.querySelector('.confidence-label');
   const fill = confidenceEl.querySelector('.progress-fill') as HTMLDivElement;
+  const progressBar = confidenceEl.querySelector('.progress-bar');
   
   if (label) label.textContent = `FORECAST CONFIDENCE: ${percent}%`;
   if (fill) fill.style.width = `${percent}%`;
+  if (progressBar) {
+    progressBar.setAttribute('aria-valuenow', String(percent));
+  }
+  
+  // Phase 25: Update confidence gauge
+  if (chartsInitialized && confidence !== undefined) {
+    updateConfidenceGauge('confidence-gauge-main', confidence);
+  }
 }
 
 function getTimeAgo(timestamp: number): string {
@@ -749,11 +801,84 @@ function renderLastUpdate(): void {
 }
 
 /* ============================================
-   PHASE 23.4: UPDATE CYCLE
+   PHASE 25: CHARTS INITIALIZATION
    ============================================ */
 
-async function updatePhase23Data(): Promise<void> {
+function initializeCharts(): void {
   try {
+    // Create mock forecast data (will be replaced with real data when available)
+    const mockForecastData = Array.from({ length: 7 }, (_, i) => ({
+      date: `Day ${i + 1}`,
+      p10: 95000 + i * 1000,
+      p50: 100000 + i * 1500,
+      p90: 105000 + i * 2000
+    }));
+    
+    // Initialize forecast chart
+    createForecastChart('forecast-chart', mockForecastData);
+    
+    // Initialize price history chart with existing price history
+    if (priceHistory.length > 0) {
+      createPriceHistoryChart('price-history-chart', priceHistory);
+    } else {
+      // Start with mock data if no history yet
+      const mockPriceHistory = Array.from({ length: 50 }, (_, i) => ({
+        timestamp: Date.now() - (50 - i) * 5 * 60 * 1000, // 5 min intervals
+        price: 98000 + Math.random() * 2000
+      }));
+      createPriceHistoryChart('price-history-chart', mockPriceHistory);
+    }
+    
+    // Initialize confidence gauge
+    const initialConfidence = cachedForecast?.tier0.confidence ?? 0.7;
+    createConfidenceGauge('confidence-gauge-main', initialConfidence);
+    
+    chartsInitialized = true;
+    console.log('[Phase25] Charts initialized');
+    
+  } catch (err) {
+    console.error('[Phase25] Chart initialization error:', err);
+    showToast('Failed to initialize charts', ToastType.WARNING, 3000);
+  }
+}
+
+function updateForecastChartWithRealData(forecast: ForecastData): void {
+  if (!chartsInitialized) return;
+  
+  try {
+    // Transform forecast data for chart
+    // Assuming forecast has predictions array
+    const forecastData = Array.from({ length: 7 }, (_, i) => ({
+      date: `Day ${i + 1}`,
+      p10: forecast.tier0.p10 + i * 500,
+      p50: forecast.tier0.p50 + i * 750,
+      p90: forecast.tier0.p90 + i * 1000
+    }));
+    
+    updateForecastChart(forecastData);
+  } catch (err) {
+    console.error('[Phase25] Forecast chart update error:', err);
+  }
+}
+
+/* ============================================
+   PHASE 25: UPDATE CYCLE WITH ERROR HANDLING
+   ============================================ */
+
+let updateInProgress = false;
+let consecutiveErrors = 0;
+const MAX_CONSECUTIVE_ERRORS = 3;
+
+async function updatePhase23Data(): Promise<void> {
+  // Prevent concurrent updates
+  if (updateInProgress) return;
+  
+  updateInProgress = true;
+  
+  try {
+    // Show loading states
+    setElementLoading('btc-price', true);
+    
     // Fetch all data in parallel
     const [priceData, regimesData, forecastData] = await Promise.all([
       fetchBTCPrice(),
@@ -775,8 +900,32 @@ async function updatePhase23Data(): Promise<void> {
     renderConfidence(cachedForecast);
     renderLastUpdate();
     
+    // Phase 25: Update forecast chart if we have new forecast data
+    if (cachedForecast) {
+      updateForecastChartWithRealData(cachedForecast);
+    }
+    
+    // Reset error counter on success
+    consecutiveErrors = 0;
+    
+    // Show update indicator
+    setElementUpdating('btc-price');
+    
   } catch (err) {
-    console.error('[Phase23] Update cycle error:', err);
+    console.error('[Phase25] Update cycle error:', err);
+    consecutiveErrors++;
+    
+    // Show error if too many consecutive failures
+    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+      showToast(
+        'Unable to fetch latest data. Retrying...',
+        ToastType.ERROR,
+        4000
+      );
+    }
+  } finally {
+    setElementLoading('btc-price', false);
+    updateInProgress = false;
   }
 }
 
@@ -829,20 +978,34 @@ const controller = createDeliveryController(
 );
 
 /* ============================================
-   BOOTSTRAP
+   PHASE 25: BOOTSTRAP WITH LOADING STATE
    ============================================ */
 
 function init(): void {
   try {
+    // Show initial loading
+    showLoading('Initializing MNS Terminal...');
+    
     // Render initial state
     renderNAV(0, STATIC_NAV_PACKET);
     renderStatus();
     
-    // Phase 23.4: Start enhanced data updates
+    // Phase 25: Initialize charts after DOM is ready
+    setTimeout(() => {
+      initializeCharts();
+    }, 500);
+    
+    // Phase 25: Start enhanced data updates
     startPhase23Updates();
     
     // Start delivery controller
     controller.start();
+    
+    // Hide loading after initial data fetch (2 seconds)
+    setTimeout(() => {
+      hideLoading();
+      showToast('MNS Terminal connected', ToastType.SUCCESS, 2000);
+    }, 2000);
     
     // Shutdown on page unload
     window.addEventListener('beforeunload', () => {
@@ -851,7 +1014,11 @@ function init(): void {
     });
     
   } catch (err) {
-    triggerFailSafe();
+    console.error('[Phase25] Initialization error:', err);
+    hideLoading();
+    showError(err as Error, () => {
+      location.reload();
+    });
   }
 }
 

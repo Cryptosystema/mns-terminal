@@ -1,0 +1,224 @@
+/**
+ * Responsive Layout - Mobile First
+ * Phase 25: Professional UI/UX
+ * 
+ * Breakpoints:
+ * - Mobile: 320px - 767px
+ * - Tablet: 768px - 1023px
+ * - Desktop: 1024px+
+ * - Wide: 1280px+
+ */
+
+/* ===== BASE (MOBILE) STYLES ===== */
+/* Already defined in terminal.css */
+
+/* ===== TABLET (768px+) ===== */
+@media (min-width: 768px) {
+  #terminal {
+    padding: var(--space-6);
+    gap: var(--space-6);
+  }
+  
+  #btc-price {
+    font-size: var(--font-size-3xl);
+    padding: var(--space-6);
+  }
+  
+  #regimes {
+    gap: var(--space-3);
+  }
+  
+  .regime-badge {
+    padding: var(--space-3) var(--space-5);
+    font-size: var(--font-size-base);
+  }
+  
+  #nav {
+    font-size: var(--font-size-base);
+    padding: var(--space-4);
+  }
+  
+  .error-container {
+    padding: var(--space-8);
+  }
+  
+  .progress-bar {
+    height: 12px;
+  }
+}
+
+/* ===== DESKTOP (1024px+) ===== */
+@media (min-width: 1024px) {
+  #terminal {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-8);
+    gap: var(--space-8);
+  }
+  
+  .terminal-header {
+    gap: var(--space-4);
+  }
+  
+  #btc-price {
+    font-size: var(--font-size-4xl);
+    padding: var(--space-8);
+  }
+  
+  #regimes {
+    gap: var(--space-4);
+  }
+  
+  .regime-badge {
+    font-size: var(--font-size-lg);
+  }
+  
+  /* Grid layout for regime badges on desktop */
+  #regimes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .confidence-label {
+    font-size: var(--font-size-base);
+  }
+  
+  .progress-bar {
+    height: 16px;
+  }
+  
+  #nav {
+    font-size: var(--font-size-lg);
+  }
+  
+  #status {
+    font-size: var(--font-size-base);
+  }
+}
+
+/* ===== WIDE SCREENS (1280px+) ===== */
+@media (min-width: 1280px) {
+  #terminal {
+    max-width: 1400px;
+    padding: var(--space-10);
+  }
+  
+  #btc-price {
+    font-size: 3rem;
+  }
+  
+  #regimes {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ===== SMALL MOBILE (max 480px) ===== */
+@media (max-width: 480px) {
+  #terminal {
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+  
+  #btc-price {
+    font-size: var(--font-size-xl);
+    padding: var(--space-3);
+  }
+  
+  .regime-badge {
+    font-size: var(--font-size-xs);
+    padding: var(--space-2) var(--space-3);
+  }
+  
+  #nav {
+    font-size: var(--font-size-xs);
+    padding: var(--space-2);
+  }
+  
+  .error-container {
+    padding: var(--space-4);
+  }
+  
+  .error-title {
+    font-size: var(--font-size-lg);
+  }
+  
+  .error-message {
+    font-size: var(--font-size-sm);
+  }
+  
+  .btn-retry,
+  .btn-refresh {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* ===== LANDSCAPE ORIENTATION ===== */
+@media (max-height: 600px) and (orientation: landscape) {
+  #terminal {
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+  
+  #btc-price {
+    font-size: var(--font-size-xl);
+    padding: var(--space-3);
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== HIGH CONTRAST MODE ===== */
+@media (prefers-contrast: high) {
+  :root {
+    --border-default: rgba(255, 255, 255, 0.4);
+    --border-strong: rgba(255, 255, 255, 0.6);
+  }
+  
+  .regime-badge {
+    border-width: 2px;
+  }
+  
+  #btc-price {
+    border-width: 2px;
+  }
+}
+
+/* ===== DARK MODE (explicit) ===== */
+@media (prefers-color-scheme: dark) {
+  /* Already dark by default */
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  #terminal {
+    padding: 1cm;
+  }
+  
+  .regime-badge,
+  #btc-price,
+  #nav {
+    border: 1px solid black;
+    background: white;
+    color: black;
+  }
+  
+  .skip-link,
+  #last-update {
+    display: none;
+  }
+}

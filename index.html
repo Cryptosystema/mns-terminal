@@ -2,157 +2,182 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MNS Terminal — mns.com.ge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      color: #00ff66;
-      font-family: "Courier New", monospace;
-      height: 100%;
-      overflow: hidden;
-    }
-    #terminal {
-      box-sizing: border-box;
-      padding: 20px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      white-space: pre;
-    }
-    #delivery-mode {
-      font-size: 0.9em;
-      opacity: 0.6;
-      margin-bottom: 8px;
-      letter-spacing: 0.5px;
-    }
-
-    /* Phase 23 - Live BTC Price */
-    #btc-price {
-      font-size: 1.4em;
-      font-weight: bold;
-      margin-bottom: 12px;
-      padding: 10px;
-      background: #001a00;
-      border: 1px solid #00ff66;
-      border-radius: 4px;
-      letter-spacing: 1px;
-    }
-
-    /* Phase 23 - Market Regimes */
-    #regimes {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-    .regime-badge {
-      padding: 6px 12px;
-      border-radius: 3px;
-      font-size: 0.85em;
-      font-weight: bold;
-      letter-spacing: 0.5px;
-      border: 1px solid currentColor;
-    }
-    .regime-low, .regime-normal, .regime-stable { 
-      color: #00ff66; 
-      background: #001a00;
-    }
-    .regime-moderate, .regime-consolidating { 
-      color: #ffff00; 
-      background: #1a1a00;
-    }
-    .regime-high, .regime-volatile, .regime-elevated { 
-      color: #ff6600; 
-      background: #1a0a00;
-    }
-    .regime-crisis, .regime-extreme { 
-      color: #ff0000; 
-      background: #1a0000;
-    }
-
-    /* Phase 23 - Confidence Indicator */
-    #confidence {
-      margin-bottom: 12px;
-    }
-    .confidence-label {
-      font-size: 0.9em;
-      margin-bottom: 4px;
-      opacity: 0.8;
-    }
-    .progress-bar {
-      width: 100%;
-      height: 8px;
-      background: #003300;
-      border: 1px solid #00ff66;
-      border-radius: 2px;
-      overflow: hidden;
-      position: relative;
-    }
-    .progress-fill {
-      height: 100%;
-      background: #00ff66;
-      transition: width 0.5s ease;
-    }
-
-    #nav {
-      font-weight: bold;
-      margin-bottom: 8px;
-      letter-spacing: 0.5px;
-    }
-    #status {
-      opacity: 0.7;
-      margin-bottom: 12px;
-      letter-spacing: 0.5px;
-      animation: heartbeat 4s ease-in-out infinite;
-    }
-
-    /* Phase 23 - Last Update Timestamp */
-    #last-update {
-      font-size: 0.8em;
-      opacity: 0.5;
-      margin-top: auto;
-      padding-top: 12px;
-      border-top: 1px solid #003300;
-    }
-
-    @keyframes heartbeat {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 0.85; }
-    }
-  </style>
+  
+  <!-- Primary Meta Tags -->
+  <title>MNS Terminal — Bitcoin Price Forecasting | Real-Time Market Intelligence</title>
+  <meta name="title" content="MNS Terminal — Bitcoin Price Forecasting | Real-Time Market Intelligence" />
+  <meta name="description" content="Advanced Bitcoin price forecasting with multi-factor regime detection, real-time market intelligence, and probabilistic predictions. Free 7-day forecasts powered by AI." />
+  <meta name="keywords" content="bitcoin, btc, price forecast, crypto prediction, trading terminal, market intelligence, regime detection, volatility analysis" />
+  <meta name="author" content="MNS" />
+  <meta name="robots" content="index, follow" />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://mns.com.ge/" />
+  <meta property="og:title" content="MNS Terminal — Bitcoin Price Forecasting" />
+  <meta property="og:description" content="Advanced Bitcoin price forecasting with multi-factor regime detection and real-time market intelligence." />
+  <meta property="og:image" content="https://mns.com.ge/og-image.png" />
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://mns.com.ge/" />
+  <meta property="twitter:title" content="MNS Terminal — Bitcoin Price Forecasting" />
+  <meta property="twitter:description" content="Advanced Bitcoin price forecasting with multi-factor regime detection and real-time market intelligence." />
+  <meta property="twitter:image" content="https://mns.com.ge/twitter-image.png" />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  
+  <!-- Theme color -->
+  <meta name="theme-color" content="#0a0e14" />
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/src/styles/main.css" />
 </head>
 <body>
-  <div id="terminal">
-    <div id="delivery-mode">Status: INITIALIZING</div>
-    
-    <!-- Phase 23.4: Live BTC Price -->
-    <div id="btc-price">BTC: Loading...</div>
-    
-    <!-- Phase 23.4: Market Regimes -->
-    <div id="regimes">
-      <div class="regime-badge regime-moderate">VOL: ---</div>
-      <div class="regime-badge regime-moderate">TREND: ---</div>
-      <div class="regime-badge regime-moderate">STRESS: ---</div>
-    </div>
-    
-    <!-- Phase 23.4: Confidence Indicator -->
-    <div id="confidence">
-      <div class="confidence-label">FORECAST CONFIDENCE: 0%</div>
-      <div class="progress-bar">
-        <div class="progress-fill" style="width: 0%"></div>
+  <!-- Skip to main content (accessibility) -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div id="terminal" role="main" aria-label="Bitcoin Market Terminal">
+    <header class="terminal-header">
+      <div 
+        id="delivery-mode" 
+        role="status" 
+        aria-live="polite"
+        aria-label="Connection status"
+      >
+        Status: INITIALIZING
       </div>
-    </div>
+    </header>
     
-    <div id="nav"></div>
-    <div id="status"></div>
+    <main id="main-content" tabindex="-1">
+      <!-- Phase 25: Live BTC Price -->
+      <div 
+        id="btc-price" 
+        role="status" 
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label="Current Bitcoin price"
+        data-tooltip="Real-time Bitcoin price from Coinbase"
+      >
+        BTC: Loading...
+      </div>
+      
+      <!-- Phase 25: Market Regimes -->
+      <div 
+        id="regimes" 
+        role="region" 
+        aria-label="Market regime indicators"
+      >
+        <div 
+          class="regime-badge regime-moderate" 
+          data-tooltip="Volatility measure: LOW (<2%), MODERATE (2-4%), HIGH (≥4%)"
+          role="status"
+        >
+          VOL: ---
+        </div>
+        <div 
+          class="regime-badge regime-moderate" 
+          data-tooltip="Trend direction: BULLISH (upward), BEARISH (downward), NEUTRAL (sideways)"
+          role="status"
+        >
+          TREND: ---
+        </div>
+        <div 
+          class="regime-badge regime-moderate" 
+          data-tooltip="Market stress level: NORMAL, ELEVATED, CRISIS"
+          role="status"
+        >
+          STRESS: ---
+        </div>
+      </div>
+      
+      <!-- Phase 25: Confidence Indicator -->
+      <div 
+        id="confidence" 
+        role="region" 
+        aria-label="Forecast confidence level"
+      >
+        <div class="confidence-label">FORECAST CONFIDENCE: 0%</div>
+        <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+      
+      <div 
+        id="nav" 
+        role="region" 
+        aria-label="Navigation packet data"
+      ></div>
+      
+      <div 
+        id="status" 
+        role="status" 
+        aria-live="polite"
+      ></div>
+    </main>
     
-    <!-- Phase 23.4: Last Update Timestamp -->
-    <div id="last-update">Last updated: Never</div>
+    <footer>
+      <!-- Phase 25: Last Update Timestamp -->
+      <div 
+        id="last-update" 
+        role="status" 
+        aria-live="polite"
+        aria-label="Last data update timestamp"
+      >
+        Last updated: Never
+      </div>
+    </footer>
+    
+    <!-- Phase 25: Data Visualization Section -->
+    <section class="charts-grid" aria-label="Data visualization charts">
+      <!-- Forecast Chart (P10/P50/P90) -->
+      <div id="forecast-chart-section" class="chart-section">
+        <div class="chart-header">
+          <div>
+            <h2 class="chart-title">7-Day Forecast</h2>
+            <p class="chart-subtitle">Probabilistic price predictions (P10/P50/P90)</p>
+          </div>
+        </div>
+        <div id="forecast-chart-container" class="chart-container">
+          <canvas id="forecast-chart" role="img" aria-label="7-day Bitcoin price forecast chart"></canvas>
+        </div>
+      </div>
+      
+      <!-- Price History Chart -->
+      <div id="price-history-section" class="chart-section">
+        <div class="chart-header">
+          <div>
+            <h2 class="chart-title">24H Price History</h2>
+            <p class="chart-subtitle">Real-time price movements</p>
+          </div>
+        </div>
+        <div id="price-history-container" class="chart-container">
+          <canvas id="price-history-chart" role="img" aria-label="24-hour Bitcoin price history chart"></canvas>
+        </div>
+      </div>
+      
+      <!-- Confidence Gauge -->
+      <div class="confidence-gauge-container" id="confidence-gauge-main" role="img" aria-label="Forecast confidence gauge">
+        <!-- Gauge will be rendered here -->
+      </div>
+    </section>
   </div>
+
+  <!-- Loading overlay (hidden by default) -->
+  <div id="loading-overlay" class="loading-overlay" style="display: none;" role="alert" aria-live="assertive">
+    <div class="loading-content">
+      <div class="spinner spinner-lg"></div>
+      <div class="loading-text">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Error container (hidden by default) -->
+  <div id="error-container" style="display: none;"></div>
 
   <script type="module" src="/src/main.ts"></script>
 </body>
