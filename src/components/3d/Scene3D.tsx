@@ -2,12 +2,18 @@
 // @ts-nocheck - Three.js JSX elements from React Three Fiber
 import { Suspense, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { TunnelGeometry } from './TunnelGeometry'
 import { CameraControls } from './CameraControls'
 import { Lighting } from './Lighting'
 import { ProbabilitySurface } from './ProbabilitySurface'
+import { ParticleSystem } from './ParticleSystem'
+import { PostProcessing } from './PostProcessing'
+import { AdaptiveTunnel } from './AdaptiveTunnel'
+import { ShareControlsUI } from './ShareControls'
 import { Scene3DProps } from '@/types/3d'
 import { generateMockForecastData } from '@/types/forecast'
+import { use3DEnabled } from '@/hooks/3d/use3DEnabled'
+import { useAdaptiveQuality } from './PerformanceSettings'
+import { usePerformanceMonitor } from '@/hooks/3d/usePerformanceMonitor'
 
 function LoadingFallback() {
   return (
@@ -30,10 +36,16 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
   // Placeholder for future use of onInteraction
   void onInteraction
   
+  const is3DEnabled = use3DEnabled()
+  const quality = useAdaptiveQuality(is3DEnabled)
+  const metrics = usePerformanceMonitor(is3DEnabled)
+  
   // Use provided data or generate mock data for development
   const forecastData = useMemo(() => {
     return data || generateMockForecastData()
   }, [data])
+  
+  const regime = forecastData.regime?.stress || 'NORMAL'
   
   return (
     <div style={{ width: '100%', height: '500px', position: 'relative' }}>
@@ -42,20 +54,35 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
           camera={{ position: [0, 5, 15], fov: 75 }}
           style={{ background: '#0a0e14' }}
           gl={{ 
-            antialias: true,
+            antialias: quality.antialiasing,
             alpha: true,
             powerPreference: 'high-performance'
           }}
+          dpr={quality.pixelRatio}
         >
           <Lighting />
           <CameraControls />
-          <TunnelGeometry regime={forecastData.regime} />
+          
+          {/* Adaptive tunnel geometry */}
+          <AdaptiveTunnel enabled={is3DEnabled} regime={forecastData.regime} />
           
           {/* Probability surfaces */}
           <ProbabilitySurface 
             forecastData={forecastData}
             tunnelLength={50}
             tunnelRadius={5}
+          />
+
+          {/* Particle system */}
+          <ParticleSystem 
+            count={quality.particleCount}
+            regime={regime}
+          />
+
+          {/* Post-processing effects */}
+          <PostProcessing 
+            enabled={quality.bloomEnabled}
+            bloomIntensity={0.5}
           />
           
           {/* Grid helper for development */}
@@ -64,6 +91,9 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
           )}
         </Canvas>
       </Suspense>
+
+      {/* Share controls */}
+      <ShareControlsUI />
 
       {/* Performance overlay (dev only) */}
       {import.meta.env.DEV && (
@@ -78,7 +108,10 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
           fontSize: '12px',
           borderRadius: '4px'
         }}>
-          3D Scene Active
+          <div>3D Scene Active</div>
+          <div>FPS: {metrics.fps}</div>
+          <div>Quality: {quality.particleCount}p</div>
+          <div>Mem: {metrics.memory}MB</div>
         </div>
       )}
     </div>
