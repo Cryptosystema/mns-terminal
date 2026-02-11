@@ -103,6 +103,20 @@ export function createForecastChart(
         intersect: false
       },
       plugins: {
+        title: {
+          display: true,
+          text: '7-Day BTC Price Forecast',
+          color: '#e6edf3',
+          font: {
+            family: 'Courier New',
+            size: 16,
+            weight: 'bold'
+          },
+          padding: {
+            top: 10,
+            bottom: 20
+          }
+        },
         legend: {
           display: true,
           position: 'top',
@@ -136,6 +150,16 @@ export function createForecastChart(
       },
       scales: {
         x: {
+          display: true,
+          title: {
+            display: true,
+            text: 'Forecast Horizon',
+            color: '#8b949e',
+            font: {
+              family: 'Courier New',
+              size: 12
+            }
+          },
           grid: {
             color: 'rgba(255, 255, 255, 0.05)'
           },
@@ -148,6 +172,16 @@ export function createForecastChart(
           }
         },
         y: {
+          display: true,
+          title: {
+            display: true,
+            text: 'BTC Price (USD)',
+            color: '#8b949e',
+            font: {
+              family: 'Courier New',
+              size: 12
+            }
+          },
           grid: {
             color: 'rgba(255, 255, 255, 0.05)'
           },
@@ -235,6 +269,20 @@ export function createPriceHistoryChart(
         intersect: false
       },
       plugins: {
+        title: {
+          display: true,
+          text: '24-Hour Price History',
+          color: '#e6edf3',
+          font: {
+            family: 'Courier New',
+            size: 16,
+            weight: 'bold'
+          },
+          padding: {
+            top: 10,
+            bottom: 20
+          }
+        },
         legend: {
           display: false
         },
@@ -261,6 +309,16 @@ export function createPriceHistoryChart(
       },
       scales: {
         x: {
+          display: true,
+          title: {
+            display: true,
+            text: 'Time',
+            color: '#8b949e',
+            font: {
+              family: 'Courier New',
+              size: 12
+            }
+          },
           grid: {
             color: 'rgba(255, 255, 255, 0.05)'
           },
@@ -276,6 +334,16 @@ export function createPriceHistoryChart(
           }
         },
         y: {
+          display: true,
+          title: {
+            display: true,
+            text: 'Price (USD)',
+            color: '#8b949e',
+            font: {
+              family: 'Courier New',
+              size: 12
+            }
+          },
           grid: {
             color: 'rgba(255, 255, 255, 0.05)'
           },
@@ -342,7 +410,8 @@ export function createConfidenceGauge(
 ): void {
   const container = document.getElementById(containerId);
   if (!container) {
-    throw new Error(`Container with id "${containerId}" not found`);
+    console.warn(`Container with id "${containerId}" not found`);
+    return;
   }
   
   const percentage = Math.round(confidence * 100);
@@ -359,8 +428,8 @@ export function createConfidenceGauge(
   const offset = circumference - (circumference * confidence);
   
   container.innerHTML = `
-    <div class="confidence-gauge" style="text-align: center;">
-      <svg width="140" height="140" viewBox="0 0 120 120">
+    <div class="confidence-gauge" style="text-align: center; padding: 20px;">
+      <svg width="160" height="160" viewBox="0 0 120 120" style="display: block; margin: 0 auto;">
         <!-- Background circle -->
         <circle
           cx="60"
@@ -368,7 +437,7 @@ export function createConfidenceGauge(
           r="50"
           fill="none"
           stroke="rgba(255, 255, 255, 0.1)"
-          stroke-width="10"
+          stroke-width="12"
         />
         
         <!-- Progress circle -->
@@ -378,12 +447,12 @@ export function createConfidenceGauge(
           r="50"
           fill="none"
           stroke="${color}"
-          stroke-width="10"
+          stroke-width="12"
           stroke-dasharray="${circumference}"
           stroke-dashoffset="${offset}"
           stroke-linecap="round"
           transform="rotate(-90 60 60)"
-          style="transition: stroke-dashoffset 0.5s ease"
+          style="transition: stroke-dashoffset 0.8s ease, stroke 0.5s ease"
         />
         
         <!-- Center text -->
@@ -391,23 +460,35 @@ export function createConfidenceGauge(
           x="60"
           y="68"
           text-anchor="middle"
-          font-size="28"
+          font-size="32"
           font-weight="bold"
-          font-family="Courier New"
+          font-family="Courier New, monospace"
           fill="${color}"
+          style="transition: fill 0.5s ease"
         >
           ${percentage}%
         </text>
       </svg>
       
       <div style="
-        margin-top: 8px;
-        font-size: 12px;
-        color: #8b949e;
+        margin-top: 12px;
+        font-size: 13px;
+        color: #e6edf3;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.1em;
+        font-family: Courier New, monospace;
+        font-weight: bold;
       ">
         Forecast Confidence
+      </div>
+      
+      <div style="
+        margin-top: 4px;
+        font-size: 11px;
+        color: ${color};
+        font-family: Courier New, monospace;
+      ">
+        ${confidence >= 0.75 ? 'HIGH' : confidence >= 0.55 ? 'MEDIUM' : 'LOW'}
       </div>
     </div>
   `;

@@ -7,9 +7,18 @@
 .chart-section {
   margin-top: var(--space-8);
   padding: var(--space-6);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
+  background: rgba(15, 20, 25, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--border-radius-lg);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chart-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .chart-header {
@@ -17,13 +26,15 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .chart-title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-bold);
   color: var(--text-primary);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -38,11 +49,14 @@
   width: 100%;
   height: 300px;
   margin-top: var(--space-4);
+  background: rgba(10, 14, 20, 0.5);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-4);
 }
 
 .chart-container canvas {
-  max-width: 100%;
-  height: auto;
+  max-width: 100% !important;
+  height: 100% !important;
 }
 
 /* ===== FORECAST CHART ===== */
@@ -69,14 +83,24 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-6);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
+  background: rgba(15, 20, 25, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--border-radius-lg);
   margin-top: var(--space-4);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-height: 250px;
+}
+
+.confidence-gauge-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .confidence-gauge svg {
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }
 
 /* ===== CHART GRID LAYOUT (Desktop) ===== */
