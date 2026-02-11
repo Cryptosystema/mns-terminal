@@ -1,11 +1,13 @@
 /// <reference path="../../types/three.d.ts" />
 // @ts-nocheck - Three.js JSX elements from React Three Fiber
-import { Suspense } from 'react'
+import { Suspense, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { TunnelGeometry } from './TunnelGeometry'
 import { CameraControls } from './CameraControls'
 import { Lighting } from './Lighting'
+import { ProbabilitySurface } from './ProbabilitySurface'
 import { Scene3DProps } from '@/types/3d'
+import { generateMockForecastData } from '@/types/forecast'
 
 function LoadingFallback() {
   return (
@@ -25,9 +27,13 @@ function LoadingFallback() {
 }
 
 export function Scene3D({ data, onInteraction }: Scene3DProps) {
-  // Placeholder for future use
-  void data
+  // Placeholder for future use of onInteraction
   void onInteraction
+  
+  // Use provided data or generate mock data for development
+  const forecastData = useMemo(() => {
+    return data || generateMockForecastData()
+  }, [data])
   
   return (
     <div style={{ width: '100%', height: '500px', position: 'relative' }}>
@@ -43,10 +49,19 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
         >
           <Lighting />
           <CameraControls />
-          <TunnelGeometry />
+          <TunnelGeometry regime={forecastData.regime} />
+          
+          {/* Probability surfaces */}
+          <ProbabilitySurface 
+            forecastData={forecastData}
+            tunnelLength={50}
+            tunnelRadius={5}
+          />
           
           {/* Grid helper for development */}
-          <gridHelper args={[50, 50, '#333333', '#1a1a1a']} />
+          {import.meta.env.DEV && (
+            <gridHelper args={[50, 50, '#333333', '#1a1a1a']} />
+          )}
         </Canvas>
       </Suspense>
 

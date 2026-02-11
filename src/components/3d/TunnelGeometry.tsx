@@ -1,10 +1,12 @@
 /// <reference path="../../types/three.d.ts" />
 // @ts-nocheck - Three.js JSX elements from React Three Fiber
-import { useRef } from 'react'
+import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { Mesh } from 'three'
 import { TunnelConfig, MaterialConfig } from '@/types/3d'
+import type { RegimeData } from '@/types/forecast'
+import { getRegimeColor } from './utils/regimeColors'
 
 const DEFAULT_TUNNEL: TunnelConfig = {
   segments: 64,
@@ -13,23 +15,23 @@ const DEFAULT_TUNNEL: TunnelConfig = {
   wireframe: false
 }
 
-const DEFAULT_MATERIAL: MaterialConfig = {
-  color: '#0088ff',
-  opacity: 0.3,
-  transparent: true,
-  wireframe: false,
-  emissive: '#0088ff',
-  emissiveIntensity: 0.2
-}
-
 export function TunnelGeometry({
   config = DEFAULT_TUNNEL,
-  material = DEFAULT_MATERIAL
+  regime
 }: {
   config?: TunnelConfig
   material?: MaterialConfig
+  regime?: RegimeData
 }) {
   const meshRef = useRef<Mesh>(null)
+  
+  // Get color based on regime
+  const tunnelColor = useMemo(() => {
+    if (regime) {
+      return getRegimeColor(regime)
+    }
+    return '#0088ff'
+  }, [regime])
 
   // Slow rotation animation
   useFrame((state) => {
@@ -54,12 +56,12 @@ export function TunnelGeometry({
 
       {/* Basic material */}
       <meshStandardMaterial
-        color={material.color}
-        transparent={material.transparent}
-        opacity={material.opacity}
-        wireframe={material.wireframe}
-        emissive={material.emissive}
-        emissiveIntensity={material.emissiveIntensity}
+        color={tunnelColor}
+        transparent={true}
+        opacity={0.3}
+        wireframe={false}
+        emissive={tunnelColor}
+        emissiveIntensity={0.2}
         side={THREE.BackSide}
       />
     </mesh>

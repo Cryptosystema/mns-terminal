@@ -1,5 +1,7 @@
+import type { ForecastData } from './forecast'
+
 export interface Scene3DProps {
-  data?: any // Will be properly typed when forecast data structure is defined
+  data?: ForecastData
   onInteraction?: (event: InteractionEvent) => void
 }
 
