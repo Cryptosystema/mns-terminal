@@ -1026,34 +1026,44 @@ let scene3DRoot: ReactDOM.Root | null = null;
  * Uses React 19 createRoot API for concurrent rendering
  */
 function initialize3DScene(): void {
+  console.log('[Phase28] 🚀 initialize3DScene() called');
+  console.log('[Phase28] 🔧 VITE_ENABLE_3D =', import.meta.env.VITE_ENABLE_3D);
+  
   try {
     // Get container element
     const container = document.getElementById('scene-3d-root');
     const section = document.getElementById('scene-3d-section');
     
+    console.log('[Phase28] 📦 Container exists:', !!container);
+    console.log('[Phase28] 📦 Section exists:', !!section);
+    
     if (!container || !section) {
-      console.warn('[Phase28] 3D container not found in DOM');
+      console.error('[Phase28] ❌ 3D container not found in DOM!');
       return;
     }
     
-    console.log('[Phase28] Initializing 3D visualization...');
+    console.log('[Phase28] ✅ Initializing 3D visualization...');
     
     // Check if feature is enabled via env variable
     const is3DEnabled = import.meta.env.VITE_ENABLE_3D === 'true';
     
+    console.log('[Phase28] 🎚️ Feature flag check: is3DEnabled =', is3DEnabled);
+    
     if (!is3DEnabled) {
-      console.log('[Phase28] 3D visualization disabled via VITE_ENABLE_3D flag');
+      console.warn('[Phase28] ⚠️ 3D visualization DISABLED via VITE_ENABLE_3D flag');
       return;
     }
     
     // Show 3D section
+    console.log('[Phase28] 👁️ Showing 3D section...');
     section.style.display = 'block';
     
     // Create React root (React 19 API)
+    console.log('[Phase28] ⚛️ Creating React root...');
     scene3DRoot = ReactDOM.createRoot(container);
     
     // Render Scene3D component
-    // Uses mock data by default, can pass real forecast data later
+    console.log('[Phase28] 🎨 Rendering Scene3D component...');
     scene3DRoot.render(
       React.createElement(Scene3D, {
         data: undefined, // Use mock data for now
@@ -1063,10 +1073,12 @@ function initialize3DScene(): void {
       })
     );
     
-    console.log('[Phase28] 3D visualization initialized successfully');
+    console.log('[Phase28] ✅ 3D visualization initialized successfully!');
+    console.log('[Phase28] 🎯 Check above this section for 3D canvas');
     
   } catch (err) {
-    console.error('[Phase28] Failed to initialize 3D scene:', err);
+    console.error('[Phase28] ❌ CRITICAL ERROR in initialize 3D scene:', err);
+    console.error('[Phase28] Stack:', (err as Error).stack);
     // Non-critical error - app continues without 3D
   }
 }
