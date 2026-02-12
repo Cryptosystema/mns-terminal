@@ -1048,7 +1048,16 @@ function initialize3DScene(): void {
     console.log('[Phase28] ✅ Initializing 3D visualization...');
     
     // Check if feature is enabled via env variable
-    const is3DEnabled = import.meta.env.VITE_ENABLE_3D === 'true';
+    const rawFlag = import.meta.env.VITE_ENABLE_3D;
+    const normalizedFlag = String(rawFlag)
+      .replace(/^['"]|['"]$/g, '')
+      .trim()
+      .toLowerCase();
+    
+    console.log('[Phase28] 🔍 Raw VITE_ENABLE_3D =', rawFlag);
+    console.log('[Phase28] 🔍 Normalized VITE_ENABLE_3D =', normalizedFlag);
+    
+    const is3DEnabled = normalizedFlag === 'true';
     
     console.log('[Phase28] 🎚️ Feature flag check: is3DEnabled =', is3DEnabled);
     
