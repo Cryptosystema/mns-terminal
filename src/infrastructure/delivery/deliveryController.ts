@@ -120,6 +120,11 @@ export class DeliveryController {
   private currentMode: DeliveryMode = DeliveryMode.SSE_PRIMARY;
   private isStarted: boolean = false;
   
+  // Retry logic with exponential backoff
+  private sseErrorCount: number = 0;
+  private maxRetries: number = 5;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  
   // Timers (mutually exclusive with SSE connection)
   private restPollingTimer: ReturnType<typeof setInterval> | null = null;
   private sseRecoveryTimer: ReturnType<typeof setInterval> | null = null;
@@ -171,7 +176,8 @@ export class DeliveryController {
    * 1. Stop SSE client if active
    * 2. Stop REST polling if active
    * 3. Clear recovery timer
-   * 4. Clear started flag
+   * 4. Clear retry timer
+   * 5. Clear started flag
    */
   public stop(): void {
     if (!this.isStarted) {
@@ -184,6 +190,15 @@ export class DeliveryController {
     // Stop all active mechanisms
     this.stopSSEMode();
     this.stopRESTMode();
+    
+    // Clear retry timer
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+    
+    // Reset error counter
+    this.sseErrorCount = 0;
     
     this.isStarted = false;
   }
@@ -240,6 +255,9 @@ export class DeliveryController {
    * Handle SSE message
    */
   private handleSSEMessage(packet: MarketPacket): void {
+    // Reset error counter on successful message
+    this.sseErrorCount = 0;
+    
     // Forward to state layer with source annotation
     this.handlers.onPacket(packet, DeliveryMode.SSE_PRIMARY);
   }
@@ -248,23 +266,54 @@ export class DeliveryController {
    * Handle SSE state change
    * 
    * Critical logic:
-   * - If SSE enters ERROR state → degrade to REST
-   * - If SSE enters CONNECTED state → confirm primary mode active
+   * - If SSE enters ERROR state → retry with exponential backoff
+   * - If SSE enters CONNECTED state → reset error counter
+   * - Only degrade to REST after MAX_RETRIES failures
    */
   private handleSSEStateChange(state: SSEConnectionState): void {
-    this.logLifecycle(`SSE state changed: ${state}`);
+    console.log(`[DELIVERY] SSE state changed: ${state}`);
     
     if (state === SSEConnectionState.ERROR) {
-      // SSE has failed - degrade to REST
-      this.logLifecycle("SSE failure detected - degrading to REST");
-      this.degradeToRESTMode();
+      this.sseErrorCount++;
+      console.warn(`[DELIVERY] ⚠️ SSE error #${this.sseErrorCount}/${this.maxRetries}`);
+      
+      // Check if we've exceeded max retries
+      if (this.sseErrorCount >= this.maxRetries) {
+        console.error(`[DELIVERY] ❌ SSE failed after ${this.maxRetries} attempts - degrading to REST`);
+        this.degradeToRESTMode();
+        return;
+      }
+      
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+      const backoffMs = Math.min(1000 * Math.pow(2, this.sseErrorCount - 1), 16000);
+      console.log(`[DELIVERY] 🔄 Retrying SSE in ${backoffMs}ms...`);
+      
+      // Clear any existing retry timer
+      if (this.retryTimer) {
+        clearTimeout(this.retryTimer);
+      }
+      
+      // Schedule retry with exponential backoff
+      this.retryTimer = setTimeout(() => {
+        console.log(`[DELIVERY] 🔄 Attempting SSE reconnection...`);
+        this.stopSSEMode();
+        this.startSSEMode();
+      }, backoffMs);
     }
     
     if (state === SSEConnectionState.CONNECTED) {
-      // SSE successfully connected/reconnected
-      this.logLifecycle("SSE connection established");
+      console.log("[DELIVERY] ✅ SSE connection established");
       
-      // Ensure we're in SSE_PRIMARY mode (may already be)
+      // Reset error counter on successful connection
+      this.sseErrorCount = 0;
+      
+      // Clear any pending retry timer
+      if (this.retryTimer) {
+        clearTimeout(this.retryTimer);
+        this.retryTimer = null;
+      }
+      
+      // Ensure we're in SSE_PRIMARY mode
       if (this.currentMode !== DeliveryMode.SSE_PRIMARY) {
         this.setMode(DeliveryMode.SSE_PRIMARY);
       }

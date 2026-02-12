@@ -285,17 +285,22 @@ export class SSEClient {
   }
   
   private handleError(event: Event): void {
-    this.logLifecycle("Connection error");
-    console.error("[SSE] ❌ Error:", event);
-    console.error("[SSE] ReadyState:", this.eventSource?.readyState ?? -1);
-    this.setState(SSEConnectionState.ERROR);
+    const readyState = this.eventSource?.readyState ?? -1;
+    this.logLifecycle("Connection error (readyState: " + readyState + ")");
+    console.warn("[SSE] ⚠️ Connection error, readyState:", readyState);
     
-    if (this.handlers.onError) {
-      this.handlers.onError(new Error("EventSource error"));
+    // Only set ERROR state if connection is truly closed
+    if (readyState === EventSource.CLOSED) {
+      console.error("[SSE] ❌ Connection CLOSED");
+      this.setState(SSEConnectionState.ERROR);
+      
+      if (this.handlers.onError) {
+        this.handlers.onError(new Error("EventSource closed"));
+      }
+    } else {
+      // Transient error - browser will reconnect automatically
+      console.log("[SSE] 🔄 Transient error, awaiting auto-reconnection...");
     }
-    
-    // Note: Browser EventSource will attempt auto-reconnection
-    // We transition back to CONNECTING when reconnection starts
   }
 
   private handleDefaultMessage(event: MessageEvent): void {
@@ -305,7 +310,7 @@ export class SSEClient {
   
   private handleNavUpdate(event: MessageEvent): void {
     try {
-      console.log("[SSE] 📨 Message received:", event.data);
+      console.log("[SSE] 📨 nav_update received");
       const now = Date.now();
       
       // Throttle check (prevent overwhelming state layer)
@@ -317,38 +322,48 @@ export class SSEClient {
       // Payload size check
       const data = event.data;
       if (!data || typeof data !== "string") {
-        this.logError("nav_update: invalid data type", null);
+        console.warn("[SSE] ⚠️ Invalid data type, ignoring");
         return;
       }
       
       if (data.length > this.config.maxPayloadSize) {
-        this.logError("nav_update: payload too large", null);
+        console.warn("[SSE] ⚠️ Payload too large, ignoring");
         return;
       }
       
-      // Parse JSON
-      let packet: MarketPacket;
+      // Parse JSON with tolerant error handling
+      let payload: any;
       try {
-        packet = JSON.parse(data);
+        payload = JSON.parse(data);
       } catch (parseErr) {
-        this.logError("nav_update: JSON parse failed", parseErr);
+        console.warn("[SSE] ⚠️ Non-JSON packet ignored");
         return;
       }
       
-      // Basic structural validation (tier check)
-      if (!this.isValidPacketStructure(packet)) {
-        this.logError("nav_update: invalid packet structure", null);
+      // Tolerant validation - accept any object with minimal nav structure
+      if (!payload || typeof payload !== "object") {
+        console.warn("[SSE] ⚠️ Invalid payload structure, ignoring");
+        return;
+      }
+      
+      // Accept packet if it has nav field (defensive parsing)
+      const packet = this.normalizePacket(payload);
+      if (!packet) {
+        console.warn("[SSE] ⚠️ Cannot normalize packet, ignoring");
         return;
       }
       
       // Update throttle timestamp
       this.lastMessageTime = now;
       
+      console.log("[SSE] ✅ Packet accepted and forwarded");
+      
       // Forward to state layer
       this.handlers.onMessage(packet);
       
     } catch (err) {
-      this.logError("nav_update: handler failed", err);
+      console.warn("[SSE] ⚠️ Handler error:", err);
+      // Don't throw - keep connection alive
     }
   }
   
@@ -365,82 +380,59 @@ export class SSEClient {
      ============================================ */
   
   /**
-   * Basic packet structure validation
+   * Normalize and validate packet structure (TOLERANT)
    * 
    * Note: This is NOT cryptographic validation.
-   * This only checks that the packet has the expected shape.
+   * Accepts any structure with nav field using defensive optional chaining.
    * Signature verification is delegated to the state layer.
    */
-  private isValidPacketStructure(packet: any): packet is MarketPacket {
+  private normalizePacket(payload: any): MarketPacket | null {
     try {
-      if (!packet || typeof packet !== "object") {
-        return false;
-      }
-      
-      // Check for nav field
-      if (!packet.nav || typeof packet.nav !== "object") {
-        return false;
+      // Minimum requirement: nav object exists
+      if (!payload?.nav || typeof payload.nav !== "object") {
+        return null;
       }
       
       // Determine tier (default to 0 if not specified)
-      const tier = packet.meta?.tier ?? 0;
+      const tier = payload.meta?.tier ?? 0;
       
-      // Validate tier is 0, 1, or 2
-      if (![0, 1, 2].includes(tier)) {
-        return false;
+      // Build normalized packet with defensive optional chaining
+      const normalized: any = {
+        nav: {
+          regime: payload.nav.regime ?? "unknown",
+          risk: payload.nav.risk ?? "unknown",
+          confidence: payload.nav.confidence ?? "unknown",
+          status: payload.nav.status ?? undefined,
+          scope: payload.nav.scope ?? undefined,
+          bias: payload.nav.bias ?? undefined,
+          stability: payload.nav.stability ?? undefined
+        }
+      };
+      
+      // Add meta if present
+      if (payload.meta) {
+        normalized.meta = {
+          tier: tier,
+          signature: payload.meta.signature ?? undefined,
+          kid: payload.meta.kid ?? undefined,
+          issued_at: payload.meta.issued_at ?? undefined
+        };
       }
       
-      // Tier 0: unsigned, minimal fields
-      if (tier === 0) {
-        return (
-          typeof packet.nav.regime === "string" &&
-          typeof packet.nav.risk === "string" &&
-          typeof packet.nav.confidence === "string"
-        );
+      // Add navigator if present (Tier 2)
+      if (payload.navigator) {
+        normalized.navigator = {
+          drivers: Array.isArray(payload.navigator.drivers) ? payload.navigator.drivers : [],
+          blockers: Array.isArray(payload.navigator.blockers) ? payload.navigator.blockers : [],
+          gaps: Array.isArray(payload.navigator.gaps) ? payload.navigator.gaps : []
+        };
       }
       
-      // Tier 1/2: signed, with meta
-      if (tier === 1 || tier === 2) {
-        if (!packet.meta || typeof packet.meta !== "object") {
-          return false;
-        }
-        
-        if (
-          typeof packet.meta.signature !== "string" ||
-          typeof packet.meta.kid !== "string" ||
-          typeof packet.meta.issued_at !== "string"
-        ) {
-          return false;
-        }
-        
-        // Tier 1: includes bias/stability
-        if (
-          typeof packet.nav.bias !== "string" ||
-          typeof packet.nav.stability !== "string"
-        ) {
-          return false;
-        }
-        
-        // Tier 2: includes navigator
-        if (tier === 2) {
-          if (!packet.navigator || typeof packet.navigator !== "object") {
-            return false;
-          }
-          
-          if (
-            !Array.isArray(packet.navigator.drivers) ||
-            !Array.isArray(packet.navigator.blockers) ||
-            !Array.isArray(packet.navigator.gaps)
-          ) {
-            return false;
-          }
-        }
-      }
-      
-      return true;
+      return normalized as MarketPacket;
       
     } catch (err) {
-      return false;
+      console.warn("[SSE] ⚠️ Normalization error:", err);
+      return null;
     }
   }
   

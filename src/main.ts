@@ -993,15 +993,18 @@ function stopPhase23Updates(): void {
 
 const handlers: DeliveryControllerHandlers = {
   onPacket: async (packet: MarketPacket, _source: DeliveryMode) => {
+    console.log('[DELIVERY] ✅ nav_update received, updating state...');
     await updateState(packet);
+    console.log('[DELIVERY] ✅ State updated successfully');
   },
   
   onModeChange: (mode: DeliveryMode) => {
+    console.log('[DELIVERY] Mode changed:', mode);
     updateDeliveryModeIndicator(mode);
   },
   
   onError: (error: Error) => {
-    console.error('[App] Delivery error:', error.message);
+    console.error('[DELIVERY] ❌ Error:', error.message);
   }
 };
 
