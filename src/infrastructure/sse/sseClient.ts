@@ -284,7 +284,7 @@ export class SSEClient {
     }
   }
   
-  private handleError(event: Event): void {
+  private handleError(_event: Event): void {
     const readyState = this.eventSource?.readyState ?? -1;
     this.logLifecycle("Connection error (readyState: " + readyState + ")");
     console.warn("[SSE] ⚠️ Connection error, readyState:", readyState);
