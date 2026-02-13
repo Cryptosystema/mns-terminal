@@ -1,34 +1,40 @@
 /// <reference path="../../types/three.d.ts" />
 // @ts-nocheck - Three.js JSX elements from React Three Fiber
 import { LightConfig } from '@/types/3d'
+import { getRegimeTheme, type RegimeType } from './config/regimePalette'
 
 const DEFAULT_LIGHTS: LightConfig = {
   ambient: {
     color: '#ffffff',
-    intensity: 0.3
+    intensity: 0.6
   },
   directional: {
     color: '#ffffff',
-    intensity: 0.8,
-    position: [10, 10, 5]
+    intensity: 1.2,
+    position: [5, 8, 15]
   },
   point: {
     color: '#00ff88',
-    intensity: 1.5,
+    intensity: 2,
     position: [0, 0, 5]
   }
 }
 
-export function Lighting({ config = DEFAULT_LIGHTS }: { config?: LightConfig }) {
+interface LightingProps {
+  config?: LightConfig
+  regime?: RegimeType
+}
+
+export function Lighting({ config = DEFAULT_LIGHTS, regime = 'NORMAL' }: LightingProps) {
+  const theme = getRegimeTheme(regime)
+
   return (
     <>
-      {/* Ambient light - soft base illumination */}
       <ambientLight
         color={config.ambient.color}
         intensity={config.ambient.intensity}
       />
 
-      {/* Directional light - main light source */}
       <directionalLight
         color={config.directional.color}
         intensity={config.directional.intensity}
@@ -36,16 +42,29 @@ export function Lighting({ config = DEFAULT_LIGHTS }: { config?: LightConfig }) 
         castShadow
       />
 
-      {/* Point light - accent/highlight (optional) */}
+      <directionalLight
+        color="#b8d4ff"
+        intensity={0.6}
+        position={[-10, 5, 10]}
+      />
+
+      <directionalLight
+        color={theme.glow}
+        intensity={0.8}
+        position={[0, 5, -15]}
+      />
+
       {config.point && (
         <pointLight
-          color={config.point.color}
+          color={theme.glow}
           intensity={config.point.intensity}
           position={config.point.position}
-          distance={50}
+          distance={60}
           decay={2}
         />
       )}
+
+      <fog attach="fog" args={[theme.fog, 20, 80]} />
     </>
   )
 }

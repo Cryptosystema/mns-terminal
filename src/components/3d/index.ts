@@ -10,6 +10,10 @@ export { usePerformanceMonitor } from '@/hooks/3d/usePerformanceMonitor'
 export type { ForecastData, PredictionPoint, RegimeData } from '@/types/forecast'
 export { generateMockForecastData } from '@/types/forecast'
 
+// Regime configuration
+export { getRegimeTheme, REGIME_PALETTE } from './config/regimePalette'
+export type { RegimeType, RegimeVisualTheme } from './config/regimePalette'
+
 // Internal components NOT exported:
 // - TunnelGeometry (internal)
 // - CameraControls (internal)
@@ -17,3 +21,4 @@ export { generateMockForecastData } from '@/types/forecast'
 // - ProbabilitySurface (internal)
 // - ProbabilityLine (internal)
 // - DataPointMarker (internal)
+// - Environment (internal)

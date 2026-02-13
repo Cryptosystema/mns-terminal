@@ -7,12 +7,14 @@ import { Lighting } from './Lighting'
 import { ProbabilitySurface } from './ProbabilitySurface'
 import { ParticleSystem } from './ParticleSystem'
 import { AdaptiveTunnel } from './AdaptiveTunnel'
+import { Environment } from './Environment'
 import { ShareControlsUI } from './ShareControls'
 import { Scene3DProps } from '@/types/3d'
 import { generateMockForecastData } from '@/types/forecast'
 import { use3DEnabled } from '@/hooks/3d/use3DEnabled'
 import { useAdaptiveQuality } from './PerformanceSettings'
 import { usePerformanceMonitor } from '@/hooks/3d/usePerformanceMonitor'
+import type { RegimeType } from './config/regimePalette'
 
 function LoadingFallback() {
   return (
@@ -31,20 +33,31 @@ function LoadingFallback() {
   )
 }
 
+function mapRegimeToType(stress?: string): RegimeType {
+  switch (stress) {
+    case 'EXTREME':
+      return 'CRITICAL'
+    case 'HIGH':
+      return 'ELEVATED_STRESS'
+    case 'MODERATE':
+      return 'COMPRESSION'
+    default:
+      return 'NORMAL'
+  }
+}
+
 export function Scene3D({ data, onInteraction }: Scene3DProps) {
-  // Placeholder for future use of onInteraction
   void onInteraction
   
   const is3DEnabled = use3DEnabled()
   const quality = useAdaptiveQuality(is3DEnabled)
   const metrics = usePerformanceMonitor(is3DEnabled)
   
-  // Use provided data or generate mock data for development
   const forecastData = useMemo(() => {
     return data || generateMockForecastData()
   }, [data])
   
-  const regime = forecastData.regime?.stress || 'NORMAL'
+  const regime = mapRegimeToType(forecastData.regime?.stress)
   
   return (
     <div style={{ width: '100%', height: '500px', position: 'relative' }}>
@@ -59,36 +72,29 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
           }}
           dpr={quality.pixelRatio}
         >
-          <Lighting />
+          <Lighting regime={regime} />
           <CameraControls />
           
-          {/* Adaptive tunnel geometry */}
           <AdaptiveTunnel enabled={is3DEnabled} regime={forecastData.regime} />
           
-          {/* Probability surfaces */}
           <ProbabilitySurface 
             forecastData={forecastData}
             tunnelLength={50}
             tunnelRadius={5}
+            regime={regime}
           />
 
-          {/* Particle system */}
           <ParticleSystem 
             count={quality.particleCount}
             regime={regime}
           />
           
-          {/* Grid helper for development */}
-          {import.meta.env.DEV && (
-            <gridHelper args={[50, 50, '#333333', '#1a1a1a']} />
-          )}
+          <Environment regime={regime} />
         </Canvas>
       </Suspense>
 
-      {/* Share controls */}
       <ShareControlsUI />
 
-      {/* Performance overlay (dev only) */}
       {import.meta.env.DEV && (
         <div style={{
           position: 'absolute',
@@ -105,6 +111,7 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
           <div>FPS: {metrics.fps}</div>
           <div>Quality: {quality.particleCount}p</div>
           <div>Mem: {metrics.memory}MB</div>
+          <div>Regime: {regime}</div>
         </div>
       )}
     </div>
