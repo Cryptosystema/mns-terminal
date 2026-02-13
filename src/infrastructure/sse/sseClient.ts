@@ -346,8 +346,72 @@ export class SSEClient {
         return;
       }
       
+      // Handle aggregated backend format
+      // Backend sends: { tier0: {...}, tier1: {...}, tier2: {...}, timestamp: number }
+      let normalizedPayload: any = payload;
+      
+      if (payload.tier2) {
+        // Build Tier2Packet from aggregated format
+        normalizedPayload = {
+          nav: {
+            regime: payload.tier0?.regime ?? "UNKNOWN",
+            risk: payload.tier0?.risk ?? "UNKNOWN",
+            confidence: String(payload.tier0?.confidence ?? "0"),
+            bias: payload.tier1?.bias ?? "NEUTRAL",
+            stability: payload.tier1?.stability ?? "UNKNOWN"
+          },
+          navigator: {
+            drivers: payload.tier2?.drivers ?? [],
+            blockers: payload.tier2?.blockers ?? [],
+            gaps: []
+          },
+          meta: {
+            tier: 2,
+            signature: "unsigned",
+            kid: "internal",
+            issued_at: payload.timestamp
+              ? new Date(payload.timestamp * 1000).toISOString()
+              : new Date().toISOString()
+          }
+        };
+      } else if (payload.tier1) {
+        // Build Tier1Packet from aggregated format
+        normalizedPayload = {
+          nav: {
+            regime: payload.tier0?.regime ?? "UNKNOWN",
+            risk: payload.tier0?.risk ?? "UNKNOWN",
+            confidence: String(payload.tier0?.confidence ?? "0"),
+            bias: payload.tier1?.bias ?? "NEUTRAL",
+            stability: payload.tier1?.stability ?? "UNKNOWN"
+          },
+          meta: {
+            tier: 1,
+            signature: "unsigned",
+            kid: "internal",
+            issued_at: payload.timestamp
+              ? new Date(payload.timestamp * 1000).toISOString()
+              : new Date().toISOString()
+          }
+        };
+      } else if (payload.tier0) {
+        // Build Tier0Packet from aggregated format
+        normalizedPayload = {
+          nav: {
+            regime: payload.tier0?.regime ?? "UNKNOWN",
+            risk: payload.tier0?.risk ?? "UNKNOWN",
+            confidence: String(payload.tier0?.confidence ?? "0"),
+            status: "LIVE",
+            scope: "NAV"
+          },
+          meta: {
+            tier: 0
+          }
+        };
+      }
+      // Else: use payload as-is (fallback to existing format)
+      
       // Accept packet if it has nav field (defensive parsing)
-      const packet = this.normalizePacket(payload);
+      const packet = this.normalizePacket(normalizedPayload);
       if (!packet) {
         console.warn("[SSE] ⚠️ Cannot normalize packet, ignoring");
         return;
