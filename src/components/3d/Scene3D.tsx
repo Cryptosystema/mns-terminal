@@ -76,6 +76,18 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
     volatility: forecastData.regime?.volatility ?? 0.5
   }), [forecastData])
   
+  // Cinematic fog system - FogExp2 with confidence-driven density
+  const fogConfig = useMemo(() => {
+    const confidence = marketParams.confidence
+    const density = 0.02 + (1 - confidence) * 0.05
+    
+    // Darker fog color based on regime
+    const baseFogColor = visualState?.fogColor ?? '#0a1929'
+    const fogColor = new THREE.Color(baseFogColor).multiplyScalar(0.7) // Darker for depth
+    
+    return { density, color: `#${fogColor.getHexString()}` }
+  }, [marketParams.confidence, visualState])
+  
   return (
     <div style={{ width: '100%', height: '500px', position: 'relative' }}>
       <Suspense fallback={<LoadingFallback />}>
@@ -88,13 +100,12 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
             powerPreference: 'high-performance'
           }}
           dpr={quality.pixelRatio}
-          onCreated={({ scene }) => {
-            // Apply semantic fog depth
-            scene.fog = new THREE.Fog(
-              fogParams.color,
-              fogParams.near,
-              fogParams.far
-            )
+          onCreated={({ scene, gl }) => {
+            // Apply exponential fog for cinematic depth
+            scene.fog = new THREE.FogExp2(fogConfig.color, fogConfig.density)
+            
+            // Subtle bloom via tone mapping exposure
+            gl.toneMappingExposure = 1.1
           }}
         >
           <Lighting 

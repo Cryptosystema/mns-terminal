@@ -30,6 +30,7 @@ export function MarketSurface({
   volatility = 0.5
 }: MarketSurfaceProps) {
   const meshRef = useRef<Mesh>(null)
+  const frameCountRef = useRef(0)
   const theme = getRegimeTheme(regime)
   
   // Surface configuration
@@ -42,25 +43,38 @@ export function MarketSurface({
   
   // Material properties from visual state
   const materialProps = useMemo(() => {
+    // Confidence-driven emissive intensity
+    const emissiveIntensity = 0.2 + confidence * 0.6
+    
     if (visualState) {
       return {
         color: visualState.tunnelColor,
         emissive: visualState.tunnelColor,
-        emissiveIntensity: visualState.tunnelEmissive * 1.5, // Boost for surface visibility
-        metalness: 0.4,
-        roughness: 0.2,
+        emissiveIntensity,
+        metalness: 0.7,
+        roughness: 0.15,
+        clearcoat: 0.6,
+        clearcoatRoughness: 0.1,
+        reflectivity: 0.9,
+        transmission: 0.0,
+        thickness: 0.2,
         opacity: visualState.tunnelOpacity * 0.8
       }
     }
     return {
       color: theme.primary,
       emissive: theme.glow,
-      emissiveIntensity: 0.3,
-      metalness: 0.4,
-      roughness: 0.2,
+      emissiveIntensity,
+      metalness: 0.7,
+      roughness: 0.15,
+      clearcoat: 0.6,
+      clearcoatRoughness: 0.1,
+      reflectivity: 0.9,
+      transmission: 0.0,
+      thickness: 0.2,
       opacity: 0.8
     }
-  }, [visualState, theme])
+  }, [visualState, theme, confidence])
   
   // Displacement parameters based on confidence and volatility
   const displacementParams = useMemo(() => ({
@@ -124,7 +138,12 @@ export function MarketSurface({
     }
     
     geo.attributes.position.needsUpdate = true
-    geo.computeVertexNormals() // Recompute normals for proper lighting
+    
+    // Performance: Recompute normals every 2nd frame only
+    frameCountRef.current++
+    if (frameCountRef.current % 2 === 0) {
+      geo.computeVertexNormals()
+    }
     
     // Subtle rotation for premium feel
     mesh.rotation.z = Math.sin(time * 0.1) * 0.05
@@ -137,13 +156,17 @@ export function MarketSurface({
       position={[0, -5, 0]}
     >
       <primitive object={geometry} attach="geometry" />
-      <meshStandardMaterial
+      <meshPhysicalMaterial
         color={materialProps.color}
         emissive={materialProps.emissive}
         emissiveIntensity={materialProps.emissiveIntensity}
         metalness={materialProps.metalness}
         roughness={materialProps.roughness}
-        wireframe={true}
+        clearcoat={materialProps.clearcoat}
+        clearcoatRoughness={materialProps.clearcoatRoughness}
+        reflectivity={materialProps.reflectivity}
+        transmission={materialProps.transmission}
+        thickness={materialProps.thickness}
         transparent={true}
         opacity={materialProps.opacity}
         side={THREE.DoubleSide}
