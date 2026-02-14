@@ -30,21 +30,21 @@ function BaseLiquidityGrid({
   const theme = getRegimeTheme(regime)
 
   const gridConfig = useMemo(() => ({
-    width: 50,
-    height: 50,
+    width: 600,
+    height: 600,
     widthSegments: 300,
     heightSegments: 300
   }), [])
 
   const materialProps = useMemo(() => {
-    const emissiveIntensity = confidence * 0.6
+    const emissiveIntensity = confidence * 0.8
     
     return {
       color: visualState?.tunnelColor ?? theme.primary,
       emissive: visualState?.tunnelColor ?? theme.glow,
       emissiveIntensity,
       metalness: 0.6,
-      roughness: 0.25,
+      roughness: 0.18,
       clearcoat: 0.8,
       clearcoatRoughness: 0.1,
       opacity: 0.9
@@ -104,7 +104,7 @@ function BaseLiquidityGrid({
   })
 
   return (
-    <mesh ref={meshRef} rotation={[-Math.PI / 2.5, 0, 0]} position={[0, -8, 0]}>
+    <mesh ref={meshRef} rotation={[-Math.PI / 2.5, 0, 0]} position={[0, 10, 0]}>
       <primitive object={geometry} attach="geometry" />
       <meshPhysicalMaterial
         {...materialProps}
@@ -144,8 +144,8 @@ function UncertaintyDome({
   })
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 0]}>
-      <sphereGeometry args={[15, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
+    <mesh ref={meshRef} position={[0, 10, 0]}>
+      <sphereGeometry args={[280, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
       <meshPhysicalMaterial
         color={domeColor}
         transparent
@@ -177,13 +177,13 @@ function LiquiditySpikes({
     for (let i = 0; i < count; i++) {
       const seed = i * 123.456
       const angle = (seed * 17) % (Math.PI * 2)
-      const radius = 5 + ((seed * 23) % 15)
+      const radius = 50 + ((seed * 23) % 200)
       const x = Math.cos(angle) * radius
       const y = Math.sin(angle) * radius
-      const height = 2 + volatility * 6 + ((seed * 31) % 3)
+      const height = 15 + volatility * 35 + ((seed * 31) % 15)
 
       spikesData.push({
-        position: [x, y, -5],
+        position: [x, y, 10],
         height,
         seed
       })
@@ -213,7 +213,7 @@ function LiquiditySpikes({
     <group ref={groupRef}>
       {spikes.map((spike, i) => (
         <mesh key={i} position={spike.position}>
-          <coneGeometry args={[0.3, spike.height, 8]} />
+          <coneGeometry args={[2, spike.height, 8]} />
           <meshPhysicalMaterial
             color={theme.glow}
             emissive={theme.glow}
@@ -252,16 +252,16 @@ function CapitalFlowParticles({
     for (let i = 0; i < actualCount; i++) {
       const i3 = i * 3
       const angle = Math.random() * Math.PI * 2
-      const radius = Math.random() * 20
+      const radius = Math.random() * 280
       const x = Math.cos(angle) * radius
       const y = Math.sin(angle) * radius
-      const z = (Math.random() - 0.5) * 30
+      const z = (Math.random() - 0.5) * 200
 
       positions[i3] = x
       positions[i3 + 1] = y
       positions[i3 + 2] = z
 
-      const baseSpeed = 0.01 + volatility * 0.03
+      const baseSpeed = 0.1 + volatility * 0.3
       velocities[i3] = (Math.random() - 0.5) * baseSpeed
       velocities[i3 + 1] = (Math.random() - 0.5) * baseSpeed
       velocities[i3 + 2] = (Math.random() - 0.5) * baseSpeed * 2
@@ -271,9 +271,9 @@ function CapitalFlowParticles({
   }, [actualCount, volatility])
 
   const driftBias = useMemo(() => {
-    return regime === 'CRITICAL' ? -0.015 :
-           regime === 'ELEVATED_STRESS' ? -0.008 :
-           regime === 'COMPRESSION' ? 0.002 : 0.008
+    return regime === 'CRITICAL' ? -0.15 :
+           regime === 'ELEVATED_STRESS' ? -0.08 :
+           regime === 'COMPRESSION' ? 0.02 : 0.08
   }, [regime])
 
   useFrame(() => {
@@ -288,16 +288,16 @@ function CapitalFlowParticles({
       positions[i3 + 1] += velocities[i3 + 1]
       positions[i3 + 2] += velocities[i3 + 2] + driftBias
 
-      if (positions[i3 + 2] < -15) positions[i3 + 2] = 15
-      if (positions[i3 + 2] > 15) positions[i3 + 2] = -15
+      if (positions[i3 + 2] < -100) positions[i3 + 2] = 100
+      if (positions[i3 + 2] > 100) positions[i3 + 2] = -100
 
       const x = positions[i3]
       const y = positions[i3 + 1]
       const radius = Math.sqrt(x * x + y * y)
-      if (radius > 20) {
+      if (radius > 280) {
         const angle = Math.atan2(y, x)
-        positions[i3] = Math.cos(angle) * 20
-        positions[i3 + 1] = Math.sin(angle) * 20
+        positions[i3] = Math.cos(angle) * 280
+        positions[i3 + 1] = Math.sin(angle) * 280
       }
     }
 
@@ -315,7 +315,7 @@ function CapitalFlowParticles({
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.05}
+        size={0.6}
         color={theme.particles}
         transparent
         opacity={0.6}
@@ -339,14 +339,14 @@ function ForecastPath({
 
   const pathGeometry = useMemo(() => {
     const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-10, -5, 5),
-      new THREE.Vector3(-5, -3, 0),
-      new THREE.Vector3(0, 0, -3),
-      new THREE.Vector3(5, 2, -6),
-      new THREE.Vector3(10, 3, -10)
+      new THREE.Vector3(-100, 15, 50),
+      new THREE.Vector3(-50, 18, 0),
+      new THREE.Vector3(0, 20, -30),
+      new THREE.Vector3(50, 22, -60),
+      new THREE.Vector3(100, 25, -100)
     ])
 
-    const thickness = 0.1 + confidence * 0.3 // 0.1-0.4 range
+    const thickness = 1.5 + confidence * 3.5 // 1.5-5 range
     return new THREE.TubeGeometry(curve, 64, thickness, 8, false)
   }, [confidence])
 

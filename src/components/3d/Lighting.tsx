@@ -35,9 +35,9 @@ export function Lighting({ config = DEFAULT_LIGHTS, regime = 'NORMAL', visualSta
   const glowIntensity = visualState?.glowIntensity ?? 0.8
   
   // Regime-driven key light intensity and color
-  const keyLightIntensity = regime === 'CRITICAL' ? 1.8 : 
-                           regime === 'ELEVATED_STRESS' ? 1.5 : 
-                           regime === 'COMPRESSION' ? 1.3 : 1.2
+  const keyLightIntensity = regime === 'CRITICAL' ? 2.0 : 
+                           regime === 'ELEVATED_STRESS' ? 1.7 : 
+                           regime === 'COMPRESSION' ? 1.5 : 1.4
   
   // Warmer hue for stress, cooler for normal
   const keyLightColor = regime === 'CRITICAL' ? '#ffb8a0' :
@@ -50,12 +50,12 @@ export function Lighting({ config = DEFAULT_LIGHTS, regime = 'NORMAL', visualSta
       <hemisphereLight
         color="#b8d4ff"
         groundColor="#0a1929"
-        intensity={0.4}
+        intensity={0.15}
       />
       
       <ambientLight
         color={config.ambient.color}
-        intensity={ambientIntensity * 0.5}
+        intensity={0.15}
       />
 
       {/* Key light - regime-driven */}
@@ -75,8 +75,8 @@ export function Lighting({ config = DEFAULT_LIGHTS, regime = 'NORMAL', visualSta
       {/* Rim/back light for depth and premium edge glow */}
       <directionalLight
         color={theme.glow}
-        intensity={0.8}
-        position={[0, -3, -20]}
+        intensity={1.0}
+        position={[0, 10, -100]}
       />
 
       {config.point && (

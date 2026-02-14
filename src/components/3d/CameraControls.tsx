@@ -37,11 +37,12 @@ export function CameraControls({ config = DEFAULT_CAMERA }: { config?: CameraCon
       enablePan={false}
       enableRotate={true}
       autoRotate={true}
-      autoRotateSpeed={0.3}          // Very subtle auto-orbit
-      minDistance={15}
-      maxDistance={35}
-      minPolarAngle={Math.PI / 6}
-      maxPolarAngle={Math.PI / 2.2}
+      autoRotateSpeed={0.115}        // 0.002 rad/sec = 0.115 deg/sec
+      minDistance={40}
+      maxDistance={120}
+      minPolarAngle={Math.PI / 8}
+      maxPolarAngle={Math.PI / 2.3}
+      target={[0, 0, 0]}
     />
   )
 }
