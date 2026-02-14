@@ -7,7 +7,7 @@ import { CameraControls } from './CameraControls'
 import { Lighting } from './Lighting'
 import { ProbabilitySurface } from './ProbabilitySurface'
 import { ParticleSystem } from './ParticleSystem'
-import { DataEngineScene } from './DataEngineScene'
+import { MarketSurface } from './MarketSurface'
 import { Environment } from './Environment'
 import { ShareControlsUI } from './ShareControls'
 import { Scene3DProps } from '@/types/3d'
@@ -79,7 +79,7 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
   // Cinematic fog system - FogExp2 with confidence-driven density
   const fogConfig = useMemo(() => {
     const confidence = marketParams.confidence
-    const density = 0.03 + (1 - confidence) * 0.05
+    const density = 0.025 + (1 - confidence) * 0.03
     
     // Darker fog color based on regime
     const baseFogColor = visualState?.fogColor ?? '#0a1929'
@@ -92,8 +92,8 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
     <div style={{ width: '100%', height: '500px', position: 'relative' }}>
       <Suspense fallback={<LoadingFallback />}>
         <Canvas
-          camera={{ position: [0, 25, 80], fov: 55 }}
-          style={{ background: '#05070d' }}
+          camera={{ position: [0, 35, 90], fov: 50 }}
+          style={{ background: '#03050a' }}
           gl={{ 
             antialias: quality.antialiasing,
             alpha: true,
@@ -114,7 +114,7 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
           />
           <CameraControls />
           
-          <DataEngineScene 
+          <MarketSurface 
             regime={regime}
             visualState={visualState}
             confidence={marketParams.confidence}

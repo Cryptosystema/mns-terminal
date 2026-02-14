@@ -50,33 +50,33 @@ export function Lighting({ config = DEFAULT_LIGHTS, regime = 'NORMAL', visualSta
       <hemisphereLight
         color="#b8d4ff"
         groundColor="#0a1929"
-        intensity={0.15}
+        intensity={0.1}
       />
       
       <ambientLight
         color={config.ambient.color}
-        intensity={0.15}
+        intensity={0.1}
       />
 
-      {/* Key light - regime-driven */}
+      {/* Key light - top-left */}
       <directionalLight
         color={keyLightColor}
         intensity={keyLightIntensity}
-        position={config.directional.position}
+        position={[-50, 60, 40]}
       />
 
       {/* Fill light */}
       <directionalLight
         color="#b8d4ff"
-        intensity={0.5}
-        position={[-10, 5, 10]}
+        intensity={0.4}
+        position={[30, 30, 50]}
       />
 
-      {/* Rim/back light for depth and premium edge glow */}
+      {/* Rim/back light behind peak */}
       <directionalLight
         color={theme.glow}
-        intensity={1.0}
-        position={[0, 10, -100]}
+        intensity={1.2}
+        position={[0, 50, -60]}
       />
 
       {config.point && (

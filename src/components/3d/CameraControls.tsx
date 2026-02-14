@@ -36,13 +36,12 @@ export function CameraControls({ config = DEFAULT_CAMERA }: { config?: CameraCon
       zoomSpeed={0.6}                // Controlled zoom
       enablePan={false}
       enableRotate={true}
-      autoRotate={true}
-      autoRotateSpeed={0.115}        // 0.002 rad/sec = 0.115 deg/sec
-      minDistance={40}
-      maxDistance={120}
-      minPolarAngle={Math.PI / 8}
-      maxPolarAngle={Math.PI / 2.3}
-      target={[0, 0, 0]}
+      autoRotate={false}             // Fixed hero angle
+      minDistance={60}
+      maxDistance={140}
+      minPolarAngle={Math.PI / 5}
+      maxPolarAngle={Math.PI / 2.5}
+      target={[0, 10, 0]}
     />
   )
 }
