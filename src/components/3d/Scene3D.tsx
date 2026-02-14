@@ -7,7 +7,7 @@ import { CameraControls } from './CameraControls'
 import { Lighting } from './Lighting'
 import { ProbabilitySurface } from './ProbabilitySurface'
 import { ParticleSystem } from './ParticleSystem'
-import { AdaptiveTunnel } from './AdaptiveTunnel'
+import { MarketSurface } from './MarketSurface'
 import { Environment } from './Environment'
 import { ShareControlsUI } from './ShareControls'
 import { Scene3DProps } from '@/types/3d'
@@ -70,6 +70,12 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
   
   const fogParams = useMemo(() => getFogParameters(visualState), [visualState])
   
+  // Extract market parameters for surface
+  const marketParams = useMemo(() => ({
+    confidence: forecastData.tiers?.tier0?.confidence ?? 0.75,
+    volatility: forecastData.regime?.volatility ?? 0.5
+  }), [forecastData])
+  
   return (
     <div style={{ width: '100%', height: '500px', position: 'relative' }}>
       <Suspense fallback={<LoadingFallback />}>
@@ -97,10 +103,11 @@ export function Scene3D({ data, onInteraction }: Scene3DProps) {
           />
           <CameraControls />
           
-          <AdaptiveTunnel 
-            enabled={is3DEnabled}
-            regime={forecastData.regime}
+          <MarketSurface 
+            regime={regime}
             visualState={visualState}
+            confidence={marketParams.confidence}
+            volatility={marketParams.volatility}
           />
           
           <ProbabilitySurface 
