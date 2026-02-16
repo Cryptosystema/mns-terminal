@@ -1,8 +1,8 @@
 /// <reference path="../../../types/three.d.ts" />
-/// <reference path="../../../types/three.d.ts" />
 // @ts-nocheck - Three.js JSX elements from React Three Fiber
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { MarketNavigationData } from './utils/types'
 import { TopographySurface } from './TopographySurface'
 import { WireframeGrid } from './WireframeGrid'
@@ -46,6 +46,15 @@ export function MarketNavigationScene({ data }: Props) {
           maxPolarAngle={Math.PI / 2.2}
           enablePan={false}
         />
+        
+        <EffectComposer>
+          <Bloom
+            intensity={0.5}
+            luminanceThreshold={0.3}
+            luminanceSmoothing={0.9}
+            radius={0.8}
+          />
+        </EffectComposer>
       </Canvas>
       
       <InfoPanels data={data} />

@@ -1,5 +1,4 @@
 /// <reference path="../../../types/three.d.ts" />
-/// <reference path="../../../types/three.d.ts" />
 // @ts-nocheck - Three.js JSX elements from React Three Fiber
 import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
@@ -14,6 +13,25 @@ interface Props {
 export function ParticleField({ data }: Props) {
   const pointsRef = useRef<THREE.Points>(null)
   const config = getRegimeConfig(data.regime)
+  
+  // Create glow texture for particles
+  const particleTexture = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 32
+    canvas.height = 32
+    const ctx = canvas.getContext('2d')!
+    
+    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16)
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)')
+    gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.8)')
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+    
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, 32, 32)
+    
+    const texture = new THREE.CanvasTexture(canvas)
+    return texture
+  }, [])
   
   const { positions, velocities } = useMemo(() => {
     const count = config.particleCount
@@ -73,12 +91,14 @@ export function ParticleField({ data }: Props) {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.15}
+        size={0.3}
+        map={particleTexture}
         color={config.particleColor}
         transparent
-        opacity={0.6}
+        opacity={0.8}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
+        depthWrite={false}
       />
     </points>
   )

@@ -1,5 +1,4 @@
 /// <reference path="../../../types/three.d.ts" />
-/// <reference path="../../../types/three.d.ts" />
 // @ts-nocheck - Three.js JSX elements from React Three Fiber
 import { MarketNavigationData } from './utils/types'
 import { getRegimeConfig } from './utils/regimeConfig'
@@ -13,30 +12,47 @@ export function SceneLighting({ data }: Props) {
   
   return (
     <>
-      {/* Ambient base light */}
-      <ambientLight intensity={0.2} color={config.lightColor} />
+      {/* Ambient base light - boosted */}
+      <ambientLight intensity={0.3} color={config.lightColor} />
       
-      {/* Main directional light */}
+      {/* KEY LIGHT - Main directional light */}
       <directionalLight
-        position={[10, 20, 10]}
-        intensity={0.8}
+        position={[10, 15, 10]}
+        intensity={1.2}
         color="#ffffff"
-        castShadow
+        castShadow={false}
       />
       
-      {/* Accent point light (top) */}
-      <pointLight
-        position={[0, 10, 0]}
-        intensity={1.5}
+      {/* FILL LIGHT - Soften shadows */}
+      <directionalLight
+        position={[-10, 5, -5]}
+        intensity={0.4}
         color={config.lightColor}
-        distance={50}
       />
       
-      {/* Secondary point light (side) */}
-      <pointLight
-        position={[-15, 5, -15]}
-        intensity={0.8}
+      {/* RIM LIGHT - Edge glow */}
+      <directionalLight
+        position={[0, 5, -15]}
+        intensity={0.6}
         color={config.surfaceColor}
+      />
+      
+      {/* DRAMATIC POINT LIGHT - Top */}
+      <pointLight
+        position={[0, 12, 0]}
+        intensity={2.0}
+        color={config.lightColor}
+        distance={40}
+        decay={2}
+      />
+      
+      {/* ACCENT POINT LIGHT - Side */}
+      <pointLight
+        position={[-12, 8, -12]}
+        intensity={1.2}
+        color={config.surfaceColor}
+        distance={35}
+        decay={2}
       />
     </>
   )
