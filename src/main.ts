@@ -32,6 +32,8 @@ import {
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Scene3D } from './components/3d/index';
+import { MarketNavigationScene } from './components/3d/market-nav';
+import type { MarketNavigationData } from './components/3d/market-nav';
 
 
 /* ============================================
@@ -858,6 +860,74 @@ function initializeCharts(): void {
   }
 }
 
+/**
+ * Transform forecast data to 3D Market Navigation format
+ */
+function transformTo3DData(forecast: ForecastData | null): MarketNavigationData {
+  if (!forecast || !forecast.tier0) {
+    // Return default/mock data
+    return {
+      predictions: Array.from({ length: 30 }, (_, i) => ({
+        day: i + 1,
+        p10: 90000 + i * 100,
+        p50: 95000 + i * 150,
+        p90: 100000 + i * 200,
+      })),
+      regime: 'NORMAL',
+      volatility: 0.3,
+      confidence: 0.75,
+      stress: 0.2,
+    };
+  }
+
+  // Extract base values
+  const baseP10 = forecast.tier0.p10 || 95000;
+  const baseP50 = forecast.tier0.p50 || 100000;
+  const baseP90 = forecast.tier0.p90 || 105000;
+  const confidence = forecast.tier0.confidence || 0.75;
+
+  // Calculate increments for 30-day forecast
+  const p10_increment = (baseP50 - baseP10) * 0.08;
+  const p50_increment = baseP50 * 0.012; // 1.2% daily growth
+  const p90_increment = (baseP90 - baseP50) * 0.12;
+
+  // Generate 30-day predictions
+  const predictions = Array.from({ length: 30 }, (_, i) => ({
+    day: i + 1,
+    p10: Math.round(baseP10 + i * p10_increment),
+    p50: Math.round(baseP50 + i * p50_increment),
+    p90: Math.round(baseP90 + i * p90_increment),
+  }));
+
+  // Calculate volatility from price range
+  const priceRange = baseP90 - baseP10;
+  const volatility = Math.min(priceRange / baseP50, 1);
+
+  // Determine regime based on bias and stability
+  let regime: 'NORMAL' | 'MODERATE' | 'HIGH' | 'EXTREME' = 'NORMAL';
+  if (forecast.tier1) {
+    const bias = forecast.tier1.bias?.toUpperCase() || 'NEUTRAL';
+    const stability = forecast.tier1.stability?.toUpperCase() || 'STABLE';
+    
+    if (stability.includes('VOLATILE') || stability.includes('UNSTABLE')) {
+      regime = bias.includes('BEARISH') ? 'EXTREME' : 'HIGH';
+    } else if (stability.includes('MODERATE')) {
+      regime = 'MODERATE';
+    }
+  }
+
+  // Calculate stress score
+  const stress = Math.min(volatility * 1.2, 1);
+
+  return {
+    predictions,
+    regime,
+    volatility: Math.min(Math.max(volatility, 0), 1),
+    confidence: Math.min(Math.max(confidence, 0), 1),
+    stress: Math.min(Math.max(stress, 0), 1),
+  };
+}
+
 function updateForecastChartWithRealData(forecast: ForecastData): void {
   if (!chartsInitialized) return;
   
@@ -941,6 +1011,8 @@ async function updatePhase23Data(): Promise<void> {
     // Phase 25: Update forecast chart if we have new forecast data
     if (cachedForecast) {
       updateForecastChartWithRealData(cachedForecast);
+      // Phase 28: Update 3D visualization
+      update3DScene(cachedForecast);
     }
     
     // Reset error counter on success
@@ -1074,14 +1146,12 @@ function initialize3DScene(): void {
     console.log('[Phase28] ⚛️ Creating React root...');
     scene3DRoot = ReactDOM.createRoot(container);
     
-    // Render Scene3D component
-    console.log('[Phase28] 🎨 Rendering Scene3D component...');
+    // Render MarketNavigationScene component with initial data
+    console.log('[Phase28] 🎨 Rendering MarketNavigationScene component...');
+    const initialData = transformTo3DData(cachedForecast);
     scene3DRoot.render(
-      React.createElement(Scene3D, {
-        data: undefined, // Use mock data for now
-        onInteraction: () => {
-          console.log('[Phase28] 3D scene interaction');
-        }
+      React.createElement(MarketNavigationScene, {
+        data: initialData
       })
     );
     
@@ -1097,27 +1167,23 @@ function initialize3DScene(): void {
 
 /**
  * Update 3D scene with new forecast data
- * Can be called when cachedForecast updates
+ * Called when cachedForecast updates
  */
-function update3DScene(forecastData: any): void {
+function update3DScene(forecastData: ForecastData | null): void {
   if (!scene3DRoot) return;
   
   try {
+    const navigationData = transformTo3DData(forecastData);
     scene3DRoot.render(
-      React.createElement(Scene3D, {
-        data: forecastData,
-        onInteraction: () => {
-          console.log('[Phase28] 3D scene interaction');
-        }
+      React.createElement(MarketNavigationScene, {
+        data: navigationData
       })
     );
+    console.log('[Phase28] ✅ 3D scene updated with new data');
   } catch (err) {
     console.error('[Phase28] Failed to update 3D scene:', err);
   }
 }
-
-// Reserved for future use when integrating real forecast data
-void update3DScene;
 
 /* ============================================
    PHASE 25: BOOTSTRAP WITH LOADING STATE
