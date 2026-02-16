@@ -1,3 +1,6 @@
+/// <reference path="../../../types/three.d.ts" />
+/// <reference path="../../../types/three.d.ts" />
+// @ts-nocheck - Three.js JSX elements from React Three Fiber
 import { MarketNavigationData } from './utils/types'
 import { getRegimeConfig } from './utils/regimeConfig'
 
