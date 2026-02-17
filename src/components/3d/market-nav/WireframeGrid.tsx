@@ -34,17 +34,34 @@ export function WireframeGrid() {
   }, [])
   
   return (
-    <group>
-      {gridLines.map((points, index) => (
-        <Line
-          key={index}
-          points={points}
-          color="#1a1a1a"
-          lineWidth={0.5}
-          transparent
-          opacity={0.3}
-        />
-      ))}
-    </group>
+    <>
+      {/* Primary grid */}
+      <group>
+        {gridLines.map((points, index) => (
+          <Line
+            key={index}
+            points={points}
+            color="#003333"
+            lineWidth={1.0}
+            transparent
+            opacity={0.5}
+          />
+        ))}
+      </group>
+      
+      {/* Secondary grid rotated 45 degrees for depth */}
+      <group rotation={[0, Math.PI / 4, 0]}>
+        {gridLines.map((points, index) => (
+          <Line
+            key={`rotated-${index}`}
+            points={points}
+            color="#003333"
+            lineWidth={0.5}
+            transparent
+            opacity={0.2}
+          />
+        ))}
+      </group>
+    </>
   )
 }

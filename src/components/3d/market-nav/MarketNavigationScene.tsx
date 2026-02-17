@@ -25,13 +25,16 @@ export function MarketNavigationScene({ data }: Props) {
       }}
     >
       <Canvas
-        camera={{ position: [0, 20, 30], fov: 50 }}
+        camera={{ position: [0, 12, 22], fov: 65 }}
         gl={{
           antialias: true,
           alpha: true,
           powerPreference: 'high-performance',
         }}
       >
+        {/* Atmospheric fog for depth */}
+        <fog attach="fog" args={['#0a0e14', 20, 60]} />
+        
         <SceneLighting data={data} />
         <WireframeGrid />
         <TopographySurface data={data} />
@@ -40,10 +43,10 @@ export function MarketNavigationScene({ data }: Props) {
         <OrbitControls
           enableDamping
           dampingFactor={0.05}
-          minDistance={15}
-          maxDistance={60}
-          minPolarAngle={Math.PI / 6}
-          maxPolarAngle={Math.PI / 2.2}
+          minDistance={10}
+          maxDistance={40}
+          minPolarAngle={Math.PI / 8}
+          maxPolarAngle={Math.PI / 2.5}
           enablePan={false}
         />
         

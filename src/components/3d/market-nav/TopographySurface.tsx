@@ -20,12 +20,22 @@ export function TopographySurface({ data }: Props) {
     return buildTopologyGeometry(data.predictions, data.volatility)
   }, [data.predictions, data.volatility])
   
-  // Subtle rotation animation
+  // Breathing surface animation
   useFrame((state) => {
-    if (meshRef.current) {
-      const time = state.clock.elapsedTime
-      meshRef.current.rotation.z = Math.sin(time * 0.2) * 0.05
+    if (!meshRef.current) return
+    const time = state.clock.elapsedTime
+    const positions = meshRef.current.geometry.attributes.position.array as Float32Array
+    
+    // Subtle wave animation
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i]
+      const z = positions[i + 2]
+      // Breathing effect
+      positions[i + 1] += Math.sin(time * 0.5 + x * 0.3 + z * 0.2) * 0.002
     }
+    
+    meshRef.current.geometry.attributes.position.needsUpdate = true
+    meshRef.current.geometry.computeVertexNormals()
   })
   
   return (
