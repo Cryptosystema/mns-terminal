@@ -31,8 +31,8 @@ import {
    ============================================ */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { MarketNavigationScene } from './components/3d/market-nav';
-import type { MarketNavigationData } from './components/3d/market-nav';
+import { MarketNavigationScene } from "./components/3d/market-nav"
+import type { MarketNavigationData } from "./components/3d/market-nav"
 
 
 /* ============================================
@@ -873,7 +873,7 @@ function transformTo3DData(forecast: ForecastData | null): MarketNavigationData 
         p50: 95000 + i * 150,
         p90: 100000 + i * 200,
       })),
-      regime: 'NORMAL',
+      regime: { stress: "NORMAL" },
       volatility: 0.3,
       confidence: 0.75,
       stress: 0.2,
@@ -921,7 +921,7 @@ function transformTo3DData(forecast: ForecastData | null): MarketNavigationData 
 
   return {
     predictions,
-    regime,
+    regime: { stress: regime },
     volatility: Math.min(Math.max(volatility, 0), 1),
     confidence: Math.min(Math.max(confidence, 0), 1),
     stress: Math.min(Math.max(stress, 0), 1),
