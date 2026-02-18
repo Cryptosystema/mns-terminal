@@ -3,7 +3,11 @@ import { OrbitControls } from '@react-three/drei'
 import { TunnelGeometry } from './TunnelGeometry'
 
 export interface MarketNavigationData {
+  predictions?: Array<{ day: number; p10: number; p50: number; p90: number }>
   regime?: { stress?: string }
+  volatility?: number
+  confidence?: number
+  stress?: number
 }
 
 export function MarketNavigationScene() {
