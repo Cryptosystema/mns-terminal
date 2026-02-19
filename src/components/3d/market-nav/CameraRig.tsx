@@ -1,46 +1,28 @@
 /**
- * CameraRig — Camera positioning & orbit controls
- *
- * Camera looks THROUGH the tunnel opening, not down at it.
- * Position: slightly elevated, pulled back on Z axis.
- * Target:  tunnel center, slightly negative Z (into the arch).
+ * CameraRig — Camera INSIDE tunnel, looking through arch depth
  */
 
-import { useThree } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import { useEffect } from 'react'
-import * as THREE from 'three'
-
-const CAMERA_POSITION: [number, number, number] = [0, 3, 13]
-const LOOK_TARGET: [number, number, number] = [0, 1, -2]
+import { useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 
 export function CameraRig() {
   const { camera } = useThree()
+  const timeRef = useRef(0)
+  const initRef = useRef(false)
 
-  useEffect(() => {
-    camera.position.set(...CAMERA_POSITION)
-    if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = 82
-      camera.near = 0.1
-      camera.far = 1000
-      camera.updateProjectionMatrix()
+  useFrame((_, delta) => {
+    timeRef.current += delta
+    if (!initRef.current) {
+      camera.position.set(0, -1, 12)
+      initRef.current = true
     }
-  }, [camera])
+    const breathX = Math.sin(timeRef.current * 0.18) * 0.08
+    const breathY = Math.sin(timeRef.current * 0.12) * 0.05
+    camera.position.x = breathX
+    camera.position.y = -1 + breathY
+    camera.position.z = 12 + Math.sin(timeRef.current * 0.09) * 0.15
+    camera.lookAt(breathX * 0.3, -3, -15)
+  })
 
-  return (
-    <OrbitControls
-      enableDamping
-      dampingFactor={0.08}
-      rotateSpeed={0.5}
-      enableZoom
-      zoomSpeed={0.6}
-      enablePan={false}
-      enableRotate
-      minDistance={10}
-      maxDistance={30}
-      minPolarAngle={Math.PI / 4}
-      maxPolarAngle={Math.PI / 2}
-      target={LOOK_TARGET}
-    />
-  )
+  return null
 }
