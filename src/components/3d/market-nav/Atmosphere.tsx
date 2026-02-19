@@ -1,13 +1,5 @@
-/**
- * Atmosphere — Fog & floating particle system
- *
- * Fog:  Very dark blue-black, close start for tunnel depth
- * Particles: 1200 points in cylindrical distribution,
- *            drifting slowly toward the camera with organic motion.
- */
-
-import { useRef, useMemo } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 interface AtmosphereProps {
@@ -15,80 +7,46 @@ interface AtmosphereProps {
   particleColor: string
 }
 
-const PARTICLE_COUNT = 1200
+const PARTICLE_COUNT = 600
 
 export function Atmosphere({ fogColor, particleColor }: AtmosphereProps) {
-  const { scene } = useThree()
-  const pointsRef = useRef<THREE.Points>(null!)
+  const meshRef = useRef<THREE.Points>(null)
 
-  // Apply fog & background
-  useMemo(() => {
-    scene.fog = new THREE.Fog(fogColor, 8, 40)
-    scene.background = new THREE.Color(fogColor)
-  }, [scene, fogColor])
-
-  // Generate initial particle positions (cylindrical distribution)
-  const particlePositions = useMemo(() => {
+  const { positions, sizes } = useMemo(() => {
     const positions = new Float32Array(PARTICLE_COUNT * 3)
-
+    const sizes = new Float32Array(PARTICLE_COUNT)
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const angle = Math.random() * Math.PI * 2
-      const radius = Math.random() * 5.5 + 0.5 // 0.5 → 6
-      const i3 = i * 3
-
-      positions[i3] = Math.cos(angle) * radius
-      positions[i3 + 1] = Math.sin(angle) * radius
-      positions[i3 + 2] = (Math.random() - 0.5) * 60
+      positions[i * 3]     = (Math.random() - 0.5) * 16
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 14
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 45
+      sizes[i] = 0.03 + Math.random() * 0.07
     }
-
-    return positions
+    return { positions, sizes }
   }, [])
 
-  // Animate particles: drift toward camera, organic XY motion
-  useFrame(() => {
-    if (!pointsRef.current) return
-    const positions = pointsRef.current.geometry.attributes.position
-      .array as Float32Array
-    const now = Date.now()
+  const geo = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    g.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
+    return g
+  }, [positions, sizes])
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const i3 = i * 3
-
-      // Slow drift toward camera (+Z)
-      positions[i3 + 2] += 0.02
-
-      // Wrap around when too close
-      if (positions[i3 + 2] > 30) {
-        positions[i3 + 2] = -30
-      }
-
-      // Subtle organic XY sway
-      positions[i3] += Math.sin(now * 0.0001 + i) * 0.002
-      positions[i3 + 1] += Math.cos(now * 0.0001 + i) * 0.002
-    }
-
-    pointsRef.current.geometry.attributes.position.needsUpdate = true
+  useFrame((_, delta) => {
+    if (!meshRef.current) return
+    meshRef.current.rotation.y += delta * 0.003
+    meshRef.current.position.z += delta * 0.04
+    if (meshRef.current.position.z > 5) meshRef.current.position.z = -5
   })
 
   return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[particlePositions, 3]}
-          count={PARTICLE_COUNT}
-          itemSize={3}
+    <>
+      <fog attach="fog" args={[fogColor, 8, 55]} />
+      <points ref={meshRef} geometry={geo}>
+        <pointsMaterial
+          color={particleColor} size={0.06} transparent opacity={0.45}
+          sizeAttenuation depthWrite={false}
         />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.035}
-        color={particleColor}
-        transparent
-        opacity={0.35}
-        sizeAttenuation
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </points>
+      </points>
+    </>
   )
 }
