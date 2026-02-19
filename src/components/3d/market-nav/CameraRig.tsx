@@ -19,9 +19,9 @@ export function CameraRig() {
     const breathX = Math.sin(timeRef.current * 0.18) * 0.08
     const breathY = Math.sin(timeRef.current * 0.12) * 0.05
     camera.position.x = breathX
-    camera.position.y = -1 + breathY
-    camera.position.z = 12 + Math.sin(timeRef.current * 0.09) * 0.15
-    camera.lookAt(breathX * 0.3, -3, -15)
+    camera.position.y = -5 + breathY
+    camera.position.z = 6 + Math.sin(timeRef.current * 0.09) * 0.15
+    camera.lookAt(breathX * 0.3, -6, -15)
   })
 
   return null
