@@ -1,13 +1,11 @@
-import { useRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useThree } from '@react-three/fiber'
+import { useEffect } from 'react'
 
 export function CameraRig() {
   const { camera } = useThree()
-  const timeRef = useRef(0)
-  useFrame((_, delta) => {
-    timeRef.current += delta
-    camera.position.set(0, 3, 16)
-    camera.lookAt(0, 0, -20)
-  })
+  useEffect(() => {
+    camera.position.set(0, 8, 20)
+    camera.lookAt(0, 0, -10)
+  }, [camera])
   return null
 }

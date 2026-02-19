@@ -62,7 +62,7 @@ export function MarketNavigationScene() {
   return (
     <div style={{ width: '100%', height: '540px' }}>
       <Canvas
-        camera={{ position: [0, -1, 12], fov: 75, near: 0.1, far: 200 }}
+        camera={{ position: [0, 8, 20], fov: 65, near: 0.1, far: 200 }}
         gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
         dpr={[1, 2]}
         style={{ background: colors.fog }}
