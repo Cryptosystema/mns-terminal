@@ -35,6 +35,9 @@
   <!-- Theme color -->
   <meta name="theme-color" content="#0a0e14" />
   
+  <!-- CSP: allow unsafe-eval for Three.js GLSL shader compilation -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self' https://mns-core-minimal-test.fly.dev wss://mns-core-minimal-test.fly.dev; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline';" />
+  
   <!-- Styles -->
   <link rel="stylesheet" href="/src/styles/main.css" />
 </head>
