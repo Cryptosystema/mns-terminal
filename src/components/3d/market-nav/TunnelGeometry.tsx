@@ -39,9 +39,9 @@ export function TunnelGeometry({
       const z = positions[i + 1]
 
       // ── 1. Base arch (tunnel ridge) ─────────────────────────
-      const arch = Math.exp(-(x * x) / 0.4) * 3.5
-      const zAttenuation = Math.exp(-(z * z) / 1.0)
-      let y = arch * (0.2 + zAttenuation * 1.6)
+      const arch = Math.exp(-(x * x) / 0.4) * 1.8
+      const zAttenuation = Math.exp(-(z * z) / 1.2)
+      let y = arch * (0.15 + zAttenuation * 1.0)
 
       // ── 2. Peak contributions ───────────────────────────────
       for (let p = 0; p < PEAKS.length; p++) {

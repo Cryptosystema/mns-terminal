@@ -33,36 +33,36 @@ const FORECAST_PEAKS: PeakDefinition[] = [
     label: 'P10 Lower',
     position: { x: -0.8, z: -0.3 },
     dataPath: 'tier0.p10',
-    baseHeight: 1.5,
+    baseHeight: 4.0,
     category: 'forecast',
-    normalizer: () => 0.3
+    normalizer: () => 0.7
   },
   {
     id: 'p90',
     label: 'P90 Upper',
     position: { x: 0.8, z: -0.3 },
     dataPath: 'tier0.p90',
-    baseHeight: 3.5,
+    baseHeight: 5.5,
     category: 'forecast',
-    normalizer: () => 0.7
+    normalizer: () => 0.9
   },
   {
     id: 'p25',
     label: 'P25 Quartile',
     position: { x: -0.5, z: -0.1 },
     dataPath: 'tier0.p25',
-    baseHeight: 2.0,
+    baseHeight: 4.5,
     category: 'forecast',
-    normalizer: () => 0.4
+    normalizer: () => 0.75
   },
   {
     id: 'p75',
     label: 'P75 Quartile',
     position: { x: 0.5, z: -0.1 },
     dataPath: 'tier0.p75',
-    baseHeight: 3.0,
+    baseHeight: 5.0,
     category: 'forecast',
-    normalizer: () => 0.6
+    normalizer: () => 0.85
   }
 ]
 
@@ -72,7 +72,7 @@ const REGIME_PEAKS: PeakDefinition[] = [
     label: 'Volatility',
     position: { x: -0.3, z: 0.7 },
     dataPath: 'regimes.volatility_regime',
-    baseHeight: 2.2,
+    baseHeight: 4.0,
     category: 'regime',
     normalizer: (v: any) =>
       ({ LOW: 0.3, MODERATE: 0.6, HIGH: 0.9 } as Record<string, number>)[v] ?? 0.5
@@ -82,7 +82,7 @@ const REGIME_PEAKS: PeakDefinition[] = [
     label: 'Stress',
     position: { x: 0.3, z: 0.7 },
     dataPath: 'regimes.stress_regime',
-    baseHeight: 2.0,
+    baseHeight: 3.8,
     category: 'regime',
     normalizer: (v: any) =>
       ({ NORMAL: 0.2, ELEVATED: 0.6, CRITICAL: 1.0 } as Record<string, number>)[v] ?? 0.3
@@ -95,7 +95,7 @@ const MARKET_PEAKS: PeakDefinition[] = [
     label: 'Confidence',
     position: { x: -0.6, z: 0.3 },
     dataPath: 'tier0.confidence',
-    baseHeight: 2.8,
+    baseHeight: 4.5,
     category: 'market',
     normalizer: (v: any) => (typeof v === 'number' ? v : 0.7)
   },
@@ -104,7 +104,7 @@ const MARKET_PEAKS: PeakDefinition[] = [
     label: 'Liquidity',
     position: { x: 0.6, z: 0.3 },
     dataPath: 'tier2.liquidity_state',
-    baseHeight: 2.5,
+    baseHeight: 4.2,
     category: 'market',
     normalizer: (v: any) =>
       ({ SHALLOW: 0.3, NORMAL: 0.6, DEEP: 0.9 } as Record<string, number>)[v] ?? 0.6
@@ -114,12 +114,12 @@ const MARKET_PEAKS: PeakDefinition[] = [
 // ─── Aesthetic peaks (6) — constant height, no data ───────────────
 
 const AESTHETIC_PEAKS: PeakDefinition[] = [
-  { id: 'aesthetic_1', label: '', position: { x: -0.85, z: 0.15 }, dataPath: null, baseHeight: 1.2, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'aesthetic_2', label: '', position: { x: 0.85, z: 0.2 },  dataPath: null, baseHeight: 1.3, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'aesthetic_3', label: '', position: { x: -0.65, z: -0.65 }, dataPath: null, baseHeight: 1.0, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'aesthetic_4', label: '', position: { x: 0.7, z: -0.55 },  dataPath: null, baseHeight: 1.1, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'aesthetic_5', label: '', position: { x: -0.4, z: -0.85 }, dataPath: null, baseHeight: 0.9, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'aesthetic_6', label: '', position: { x: 0.45, z: -0.8 },  dataPath: null, baseHeight: 0.95, category: 'forecast', normalizer: () => 1.0 }
+  { id: 'aesthetic_1', label: '', position: { x: -0.85, z: 0.15 }, dataPath: null, baseHeight: 2.5, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'aesthetic_2', label: '', position: { x: 0.85, z: 0.2 },  dataPath: null, baseHeight: 2.8, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'aesthetic_3', label: '', position: { x: -0.65, z: -0.65 }, dataPath: null, baseHeight: 2.2, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'aesthetic_4', label: '', position: { x: 0.7, z: -0.55 },  dataPath: null, baseHeight: 2.4, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'aesthetic_5', label: '', position: { x: -0.4, z: -0.85 }, dataPath: null, baseHeight: 2.0, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'aesthetic_6', label: '', position: { x: 0.45, z: -0.8 },  dataPath: null, baseHeight: 2.1, category: 'forecast', normalizer: () => 1.0 }
 ]
 
 // ─── All 15 peaks ─────────────────────────────────────────────────
