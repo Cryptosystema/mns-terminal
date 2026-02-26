@@ -101,7 +101,7 @@ export function TunnelGeometry({ peakHeights, regimeColor, wireframeColor, glowC
   return (
     <group>
       <lineSegments geometry={archEdgesGeo}>
-        <lineBasicMaterial color={wireframeColor} transparent opacity={0.75} />
+        <lineBasicMaterial color={wireframeColor} transparent opacity={0.0} />
       </lineSegments>
 
       <mesh geometry={archGeo}>
