@@ -863,7 +863,7 @@ function initializeCharts(): void {
 /**
  * Transform forecast data to 3D Market Navigation format
  */
-function transformTo3DData(forecast: ForecastData | null): MarketNavigationData {
+function transformTo3DData(forecast: ForecastData | null): any {
   if (!forecast || !forecast.tier0) {
     // Return default/mock data
     return {
