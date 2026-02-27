@@ -1,132 +1,90 @@
-/**
- * TunnelGeometry — Immersive tunnel arch with data peaks
- * Camera looks INSIDE from position [0, -1, 12]
- */
-
-import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useMemo } from 'react'
 import * as THREE from 'three'
-import { PEAKS } from './MetricPeaks'
 
 export interface TunnelGeometryProps {
-  peakHeights: number[]
-  regimeColor: string
-  wireframeColor: string
-  glowColor: string
+  peaks: number[]
+  regime: string
+  color: string
 }
 
-const ARCH_RADIUS  = 9
-const ARCH_LENGTH  = 50
-const ARCH_RAD_SEG = 48
-const ARCH_LEN_SEG = 80
-const FLOOR_W      = 16
-const FLOOR_D      = 50
-const FLOOR_SEG_W  = 120
-const FLOOR_SEG_D  = 120
-const PEAK_SHARP   = 5.5
-const FLOOR_Y      = -8.5
-
-function buildArchGeometry(): THREE.BufferGeometry {
-  const geo = new THREE.CylinderGeometry(
-    ARCH_RADIUS, ARCH_RADIUS,
-    ARCH_LENGTH,
-    ARCH_RAD_SEG, ARCH_LEN_SEG,
-    true,
-    Math.PI * 0.02,
-    Math.PI * 0.96
-  )
-  geo.rotateZ(Math.PI)
-  geo.rotateX(Math.PI / 2)
-  return geo
+function gaussian(x: number, z: number, cx: number, cz: number, sigma: number, height: number) {
+  const dx = x - cx
+  const dz = z - cz
+  return height * Math.exp(-(dx * dx + dz * dz) / (2 * sigma * sigma))
 }
 
-function buildFloorGeometry(peakHeights: number[]): THREE.BufferGeometry {
-  const geo = new THREE.PlaneGeometry(FLOOR_W, FLOOR_D, FLOOR_SEG_W, FLOOR_SEG_D)
-  geo.rotateX(-Math.PI / 2)
-  const positions = geo.attributes.position.array as Float32Array
-  const halfW = FLOOR_W / 2
-  const halfD = FLOOR_D / 2
+export function TunnelGeometry({ peaks, color }: TunnelGeometryProps) {
+  const GRID_SIZE = 40
+  const SEGMENTS = 80
+  const FLOOR_Y = -2
 
-  for (let i = 0; i < positions.length; i += 3) {
-    const x = positions[i]
-    const z = positions[i + 2]
-    let y = 0
-    for (let p = 0; p < PEAKS.length; p++) {
-      const peak = PEAKS[p]
-      const px = peak.position.x * halfW * 0.85
-      const pz = peak.position.z * halfD * 0.7
-      const dx = x - px
-      const dz = z - pz
-      const distSq = dx * dx + dz * dz
-      const height = peakHeights[p] ?? peak.baseHeight
-      y += Math.exp(-distSq * PEAK_SHARP / (halfW * halfW)) * height
+  const { positions, indices, colors } = useMemo(() => {
+    const step = GRID_SIZE / SEGMENTS
+    const verts: number[] = []
+    const cols: number[] = []
+    const idx: number[] = []
+
+    // Peak centers distributed across grid
+    const peakCenters: [number, number][] = [
+      [0, 0], [-6, -4], [6, -4], [-3, 6], [3, 6],
+      [-10, 2], [10, 2], [-8, -8], [8, -8], [0, -10],
+      [-5, -2], [5, -2], [-2, 4], [2, 4], [0, 8]
+    ]
+
+    const baseColor = new THREE.Color(color)
+    const highColor = new THREE.Color(color).multiplyScalar(2.5)
+
+    for (let i = 0; i <= SEGMENTS; i++) {
+      for (let j = 0; j <= SEGMENTS; j++) {
+        const x = -GRID_SIZE / 2 + i * step
+        const z = -GRID_SIZE / 2 + j * step
+
+        let y = FLOOR_Y
+        for (let k = 0; k < Math.min(peaks.length, peakCenters.length); k++) {
+          const [cx, cz] = peakCenters[k]
+          const h = peaks[k] * 0.8
+          const sigma = 2.5 + (peaks[k] * 0.3)
+          y += gaussian(x, z, cx, cz, sigma, h)
+        }
+
+        verts.push(x, y, z)
+
+        // Color based on height
+        const t = Math.min((y - FLOOR_Y) / 6, 1)
+        const c = baseColor.clone().lerp(highColor, t)
+        cols.push(c.r, c.g, c.b)
+      }
     }
-    y += Math.sin(x * 1.8) * Math.cos(z * 1.2) * 0.12
-    positions[i + 1] = Math.max(0, y)
-  }
-  geo.computeVertexNormals()
-  return geo
-}
 
-function GlowLight({ color }: { color: string }) {
-  const lightRef = useRef<THREE.PointLight>(null)
-  const timeRef = useRef(0)
-  useFrame((_, delta) => {
-    timeRef.current += delta
-    if (lightRef.current) {
-      lightRef.current.intensity = 2.8 + Math.sin(timeRef.current * 1.2) * 0.4
+    // Build indices for wireframe grid lines
+    for (let i = 0; i < SEGMENTS; i++) {
+      for (let j = 0; j < SEGMENTS; j++) {
+        const a = i * (SEGMENTS + 1) + j
+        const b = a + 1
+        const c = a + (SEGMENTS + 1)
+        const d = c + 1
+        idx.push(a, b, b, d, d, c, c, a)
+      }
     }
-  })
-  return (
-    <pointLight
-      ref={lightRef}
-      position={[0, 0, -5]}
-      color={color}
-      intensity={2.8}
-      distance={35}
-      decay={1.8}
-    />
-  )
-}
 
-export function TunnelGeometry({ peakHeights, regimeColor, wireframeColor, glowColor }: TunnelGeometryProps) {
-  const archGeo = useMemo(() => buildArchGeometry(), [])
-  const archEdgesGeo = useMemo(() => new THREE.EdgesGeometry(archGeo, 15), [archGeo])
-  const floorGeo = useMemo(
-    () => buildFloorGeometry(peakHeights),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [peakHeights.join(',')]
-  )
+    return {
+      positions: new Float32Array(verts),
+      indices: new Uint32Array(idx),
+      colors: new Float32Array(cols)
+    }
+  }, [peaks, color, GRID_SIZE, SEGMENTS, FLOOR_Y])
+
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    geo.setIndex(new THREE.BufferAttribute(indices, 1))
+    return geo
+  }, [positions, indices, colors])
 
   return (
-    <group>
-      <lineSegments geometry={archEdgesGeo}>
-        <lineBasicMaterial color={wireframeColor} transparent opacity={0.0} />
-      </lineSegments>
-
-      <mesh geometry={archGeo}>
-        <meshStandardMaterial
-          color={regimeColor} emissive={regimeColor} emissiveIntensity={0.08}
-          transparent opacity={0.18} side={THREE.BackSide} depthWrite={false}
-        />
-      </mesh>
-
-      <mesh geometry={floorGeo} position={[0, FLOOR_Y, -8]}>
-        <meshStandardMaterial
-          color={regimeColor} emissive={regimeColor} emissiveIntensity={0.3}
-          transparent opacity={0.13} side={THREE.DoubleSide} metalness={0.6} roughness={0.3}
-        />
-      </mesh>
-
-      <mesh geometry={floorGeo} position={[0, FLOOR_Y, -8]}>
-        <meshBasicMaterial color={wireframeColor} wireframe transparent opacity={0.82} />
-      </mesh>
-
-      <GlowLight color={glowColor} />
-      <pointLight position={[0, 2, -18]} color={glowColor} intensity={1.4} distance={28} decay={2} />
-      <pointLight position={[0, -4, 2]} color={glowColor} intensity={1.0} distance={20} decay={2} />
-      <pointLight position={[-7.2, 0, 0]} color={wireframeColor} intensity={0.6} distance={15} decay={2} />
-      <pointLight position={[7.2, 0, 0]} color={wireframeColor} intensity={0.6} distance={15} decay={2} />
-    </group>
+    <lineSegments geometry={geometry}>
+      <lineBasicMaterial vertexColors transparent opacity={0.85} />
+    </lineSegments>
   )
 }

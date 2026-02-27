@@ -6,7 +6,16 @@ import { Lighting } from './Lighting'
 import { Atmosphere } from './Atmosphere'
 import { useMarketData } from './hooks/useMarketData'
 import { usePeakAnimation } from './hooks/usePeakAnimation'
-import { PEAKS, computePeakHeights, mapRegime, getRegimeColors } from './MetricPeaks'
+import { PEAKS, computePeakHeights, mapRegime } from './MetricPeaks'
+
+function getRegimeColor(regime: string): string {
+  switch (regime) {
+    case 'CRITICAL':        return '#FF6B00'
+    case 'ELEVATED_STRESS': return '#FF6B00'
+    case 'COMPRESSION':     return '#FFD700'
+    default:                return '#00E5FF'
+  }
+}
 
 function LoadingScreen() {
   return (
@@ -26,17 +35,16 @@ interface SceneInnerProps {
 }
 
 function SceneInner({ peakHeights, regime }: SceneInnerProps) {
-  const colors = getRegimeColors(regime)
+  const color = getRegimeColor(regime)
   return (
     <>
       <CameraRig />
-      <Lighting colors={colors} />
-      <Atmosphere fogColor={colors.fog} particleColor={colors.particles} />
+      <Lighting color={color} />
+      <Atmosphere fogColor="#000306" particleColor={color} />
       <TunnelGeometry
-        peakHeights={peakHeights}
-        regimeColor={colors.surface}
-        wireframeColor={colors.wireframe}
-        glowColor={colors.glow}
+        peaks={peakHeights}
+        regime={regime}
+        color={color}
       />
     </>
   )
@@ -55,17 +63,16 @@ export function MarketNavigationScene() {
   )
 
   const animatedHeights = usePeakAnimation(targetHeights, 1200)
-  const colors = getRegimeColors(regime)
 
   if (loading) return <LoadingScreen />
 
   return (
     <div style={{ width: '100%', height: '540px' }}>
       <Canvas
-        camera={{ position: [0, 8, 20], fov: 65, near: 0.1, far: 200 }}
+        camera={{ position: [18, 14, 22], fov: 50, near: 0.1, far: 300 }}
         gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
         dpr={[1, 2]}
-        style={{ background: colors.fog }}
+        style={{ background: '#000306' }}
       >
         <SceneInner peakHeights={animatedHeights} regime={regime} />
       </Canvas>
