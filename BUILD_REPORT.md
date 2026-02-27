@@ -1,4 +1,49 @@
-# MNS TERMINAL — BUILD FIX REPORT
+# MNS TERMINAL — 3D SCENE REBUILD REPORT
+**Date**: 2026-02-27  
+**Status**: ✅ BUILD PASSED  
+**Commit**: `e79d343`
+
+---
+
+## FILES CHANGED
+
+1. **src/components/3d/market-nav/CameraRig.tsx**
+   - Camera repositioned to isometric angle: `(18, 14, 22)`, lookAt `(0, 0, 0)`
+
+2. **src/components/3d/market-nav/TunnelGeometry.tsx**
+   - Full rebuild: isometric wireframe grid with 15 Gaussian peaks
+   - New props: `peaks: number[]`, `regime: string`, `color: string`
+   - Vertex-colored `lineSegments` — glowing wireframe, no solid surface
+   - 80×80 segment grid, GRID_SIZE=40, peak sigma scales with height
+
+3. **src/components/3d/market-nav/Lighting.tsx**
+   - Simplified to `color: string` prop (removed `RegimeColorSet` dependency)
+   - `ambientLight 0.05` + 2 pointLights at `(0,20,10)` and `(0,5,0)`
+
+4. **src/components/3d/market-nav/index.tsx**
+   - Canvas camera: `position [18,14,22]`, `fov 50`, `far 300`
+   - Added `getRegimeColor()`: NORMAL→#00E5FF, ELEVATED_STRESS/CRITICAL→#FF6B00, COMPRESSION→#FFD700
+   - Background hardcoded to `#000306`
+   - TunnelGeometry now receives `peaks`, `regime`, `color`
+   - Lighting now receives `color` string
+
+---
+
+## BUILD STATUS
+
+**TypeScript Compilation**: ✅ PASSED (0 errors)  
+**Commit hash**: `e79d343`  
+**Pushed to**: `origin/main`
+
+---
+
+## CONSTRAINTS VERIFIED
+
+- ✅ useMarketData.ts — NOT modified
+- ✅ vercel.json — NOT modified
+- ✅ main.tsx — NOT modified
+- ✅ No new npm packages added
+
 **Date**: 2026-02-27  
 **Status**: ✅ BUILD PASSED
 
