@@ -16,7 +16,7 @@ function gaussian(x: number, z: number, cx: number, cz: number, sigma: number, h
 
 export function TunnelGeometry({ peaks, color }: TunnelGeometryProps) {
   const GRID_SIZE = 40
-  const SEGMENTS = 80
+  const SEGMENTS = 40
   const FLOOR_Y = -2
 
   const { positions, indices, colors } = useMemo(() => {
@@ -29,7 +29,7 @@ export function TunnelGeometry({ peaks, color }: TunnelGeometryProps) {
     const peakCenters = PEAKS.map(p => [p.position.x, p.position.z] as [number, number])
 
     const baseColor = new THREE.Color(color)
-    const highColor = new THREE.Color(color).multiplyScalar(1.2)
+    const highColor = new THREE.Color(color).multiplyScalar(0.8)
 
     for (let i = 0; i <= SEGMENTS; i++) {
       for (let j = 0; j <= SEGMENTS; j++) {
