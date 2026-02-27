@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
+import { PEAKS } from './MetricPeaks'
 
 export interface TunnelGeometryProps {
   peaks: number[]
@@ -24,12 +25,8 @@ export function TunnelGeometry({ peaks, color }: TunnelGeometryProps) {
     const cols: number[] = []
     const idx: number[] = []
 
-    // Peak centers distributed across grid
-    const peakCenters: [number, number][] = [
-      [0, 0], [-6, -4], [6, -4], [-3, 6], [3, 6],
-      [-10, 2], [10, 2], [-8, -8], [8, -8], [0, -10],
-      [-5, -2], [5, -2], [-2, 4], [2, 4], [0, 8]
-    ]
+    // Peak centers from MetricPeaks (same coordinate space as grid)
+    const peakCenters = PEAKS.map(p => [p.position.x, p.position.z] as [number, number])
 
     const baseColor = new THREE.Color(color)
     const highColor = new THREE.Color(color).multiplyScalar(2.5)

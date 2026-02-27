@@ -9,21 +9,21 @@ export interface PeakDefinition {
 }
 
 const FORECAST_PEAKS: PeakDefinition[] = [
-  { id: 'p50', label: 'P50 Median',   position: { x:  0,    z: -0.1  }, dataPath: 'tier0.p50',    baseHeight: 8.0, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'p10', label: 'P10 Lower',    position: { x: -0.7,  z: -0.25 }, dataPath: 'tier0.p10',    baseHeight: 3.5, category: 'forecast', normalizer: () => 0.75 },
-  { id: 'p90', label: 'P90 Upper',    position: { x:  0.7,  z: -0.25 }, dataPath: 'tier0.p90',    baseHeight: 5.5, category: 'forecast', normalizer: () => 0.88 },
-  { id: 'p25', label: 'P25 Quartile', position: { x: -0.4,  z: -0.08 }, dataPath: 'tier0.p25',    baseHeight: 4.5, category: 'forecast', normalizer: () => 0.80 },
-  { id: 'p75', label: 'P75 Quartile', position: { x:  0.4,  z: -0.08 }, dataPath: 'tier0.p75',    baseHeight: 5.0, category: 'forecast', normalizer: () => 0.85 },
+  { id: 'p50', label: 'P50 Median',   position: { x:  0, z:  0 }, dataPath: 'tier0.p50', baseHeight: 8.0, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'p10', label: 'P10 Lower',    position: { x: -5, z: -3 }, dataPath: 'tier0.p10', baseHeight: 3.5, category: 'forecast', normalizer: () => 0.75 },
+  { id: 'p90', label: 'P90 Upper',    position: { x:  5, z: -3 }, dataPath: 'tier0.p90', baseHeight: 5.5, category: 'forecast', normalizer: () => 0.88 },
+  { id: 'p25', label: 'P25 Quartile', position: { x: -3, z:  1 }, dataPath: 'tier0.p25', baseHeight: 4.5, category: 'forecast', normalizer: () => 0.80 },
+  { id: 'p75', label: 'P75 Quartile', position: { x:  3, z:  1 }, dataPath: 'tier0.p75', baseHeight: 5.0, category: 'forecast', normalizer: () => 0.85 },
 ]
 
 const REGIME_PEAKS: PeakDefinition[] = [
   {
-    id: 'volatility', label: 'Volatility', position: { x: -0.25, z: 0.5 },
+    id: 'volatility', label: 'Volatility', position: { x: -8, z: 5 },
     dataPath: 'regimes.volatility_regime', baseHeight: 4.0, category: 'regime',
     normalizer: (v: any) => ({ LOW: 0.5, MODERATE: 0.75, HIGH: 1.0 } as Record<string,number>)[v] ?? 0.6
   },
   {
-    id: 'stress', label: 'Stress', position: { x: 0.25, z: 0.5 },
+    id: 'stress', label: 'Stress', position: { x: 8, z: 5 },
     dataPath: 'regimes.stress_regime', baseHeight: 3.8, category: 'regime',
     normalizer: (v: any) => ({ NORMAL: 0.3, ELEVATED: 0.65, CRITICAL: 1.0 } as Record<string,number>)[v] ?? 0.4
   },
@@ -31,24 +31,24 @@ const REGIME_PEAKS: PeakDefinition[] = [
 
 const MARKET_PEAKS: PeakDefinition[] = [
   {
-    id: 'confidence', label: 'Confidence', position: { x: -0.55, z: 0.2 },
+    id: 'confidence', label: 'Confidence', position: { x: -6, z: 2 },
     dataPath: 'tier0.confidence', baseHeight: 4.2, category: 'market',
     normalizer: (v: any) => (typeof v === 'number' ? Math.max(0.3, v) : 0.7)
   },
   {
-    id: 'liquidity', label: 'Liquidity', position: { x: 0.55, z: 0.2 },
+    id: 'liquidity', label: 'Liquidity', position: { x: 6, z: 2 },
     dataPath: 'tier2.liquidity_state', baseHeight: 3.8, category: 'market',
     normalizer: (v: any) => ({ SHALLOW: 0.35, NORMAL: 0.65, DEEP: 0.95 } as Record<string,number>)[v] ?? 0.65
   },
 ]
 
 const AESTHETIC_PEAKS: PeakDefinition[] = [
-  { id: 'a1', label: '', position: { x: -0.82, z:  0.10 }, dataPath: null, baseHeight: 2.5, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'a2', label: '', position: { x:  0.82, z:  0.15 }, dataPath: null, baseHeight: 2.8, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'a3', label: '', position: { x: -0.60, z: -0.60 }, dataPath: null, baseHeight: 2.2, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'a4', label: '', position: { x:  0.65, z: -0.55 }, dataPath: null, baseHeight: 2.4, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'a5', label: '', position: { x: -0.35, z: -0.75 }, dataPath: null, baseHeight: 1.8, category: 'forecast', normalizer: () => 1.0 },
-  { id: 'a6', label: '', position: { x:  0.40, z: -0.70 }, dataPath: null, baseHeight: 2.0, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'a1', label: '', position: { x: -12, z:  2 }, dataPath: null, baseHeight: 2.5, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'a2', label: '', position: { x:  12, z:  3 }, dataPath: null, baseHeight: 2.8, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'a3', label: '', position: { x:  -9, z: -7 }, dataPath: null, baseHeight: 2.2, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'a4', label: '', position: { x:   9, z: -7 }, dataPath: null, baseHeight: 2.4, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'a5', label: '', position: { x:  -4, z:-10 }, dataPath: null, baseHeight: 1.8, category: 'forecast', normalizer: () => 1.0 },
+  { id: 'a6', label: '', position: { x:   4, z:-10 }, dataPath: null, baseHeight: 2.0, category: 'forecast', normalizer: () => 1.0 },
 ]
 
 export const PEAKS: PeakDefinition[] = [
