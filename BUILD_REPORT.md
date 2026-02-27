@@ -1,4 +1,21 @@
 # MNS TERMINAL — BUILD REPORT
+**Date**: 2026-02-27 | **Commit**: `2607e42` | **Status**: ✅ PASSED
+
+ROOT CAUSE: TunnelGeometry.tsx — highColor.multiplyScalar(0.8) made peaks DARKER than floor
+(0.8 < 1.0 = inverted gradient → peaks invisible on dark background)
+
+FILES CHANGED: src/components/3d/market-nav/TunnelGeometry.tsx
+
+FIXES APPLIED:
+1. multiplyScalar(0.8) → multiplyScalar(2.5)  [peaks now brighter than floor]
+2. peaks[k] * 0.8   → peaks[k] * 1.5         [taller peaks]
+3. sigma 2.5+h*0.3  → 3.0+h*0.2              [wider gaussian spread]
+4. opacity 0.6      → 0.85                    [more visible wireframe]
+
+PEAK MAX HEIGHT: 8.0 * 1.5 = 12.0 → VISIBLE ✅
+TS ERRORS: 0
+BUILD: PASS
+COMMIT: 2607e42
 **Date**: 2026-02-27 | **Commit**: `bb62d66` | **Status**: ✅ PASSED
 
 ## Files Changed
