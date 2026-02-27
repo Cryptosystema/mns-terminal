@@ -26,7 +26,7 @@ export function TunnelGeometry({ peaks, color }: TunnelGeometryProps) {
     const idx: number[] = []
 
     // Peak centers from MetricPeaks (same coordinate space as grid)
-    const peakCenters = PEAKS.map(p => [p.position.x, p.position.z] as [number, number])
+    console.log("[3D] peaks array:", peaks, "sum:", peaks.reduce((a,b)=>a+b,0)); const peakCenters = PEAKS.map(p => [p.position.x, p.position.z] as [number, number])
 
     const baseColor = new THREE.Color(color)
     const highColor = new THREE.Color(color).multiplyScalar(1.1)
